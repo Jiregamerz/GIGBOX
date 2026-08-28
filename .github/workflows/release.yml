@@ -46,6 +46,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          lfs: true
 
       # ---------------------------------------------------------
       # 2. INSTALL DEPENDENCIES
@@ -111,7 +112,7 @@ jobs:
         id: download_base
         run: |
           set -e
-          VERSION="${{ github.event.inputs.zynthian_version }}"
+          VERSION="${{ inputs.zynthian_version }}"
           
           if [ "$VERSION" = "last-stable" ] || [ "$VERSION" = "latest" ]; then
             # Try to get latest stable from Zynthian releases
@@ -319,92 +320,13 @@ jobs:
       # 12. RUN VALIDATION (with proper CRITICAL vs EXPECTED classification)
       # ---------------------------------------------------------
       - name: Run target rootfs validation
-        if: ${{ !github.event.inputs.skip_validation }}
+        if: ${{ !inputs.skip_validation }}
         run: |
           # Copy validation script
           sudo cp "$INTEGRATION_DIR/scripts/validate-target-rootfs.py" "$WORK_DIR/root/tmp/validate-target-rootfs.py"
           
           # Create wrapper that runs with proper PYTHONPATH and classifies results
-          sudo tee "$WORK_DIR/root/tmp/run-validation-wrapper.py" > /dev/null << 'VALEOF'
-          #!/usr/bin/python3
-          import sys
-          import subprocess
-          import traceback
-
-          # Run validation with correct PYTHONPATH for Zynthian modules
-          # The validation script itself is run inside chroot with qemu-aarch64
-          # We need to set up the path for zynconf, zyncoder, zyngui
-
-          env = {
-          'PYTHONPATH': '/zynthian:/zynthian/zynthian-ui:/zynthian/zynthian-ui/zyngui',
-          }
-
-          result = subprocess.run([
-          '/usr/bin/qemu-aarch64', 
-          '/usr/bin/python3', 
-          '/tmp/validate-target-rootfs.py'
-          ], capture_output=True, text=True, env={**os.environ, **env})
-
-          print(result.stdout)
-          if result.stderr:
-          print(result.stderr, file=sys.stderr)
-
-          # Analyze output for CRITICAL vs EXPECTED failures
-          output = result.stdout + result.stderr
-          lines = output.split('\n')
-
-          critical_failures = []
-          expected_limitations = []
-
-          # Track which test sections we're in
-          in_critical_section = False
-
-          for line in lines:
-          if 'GIGBOX MODULE SYNTAX' in line:
-          in_critical_section = True
-          elif 'ZYNTHIAN CORE IMPORTS' in line:
-          in_critical_section = False  # These are expected to fail in chroot
-          elif 'ZYNGUI IMPORTS' in line:
-          in_critical_section = False  # Expected to fail
-          elif 'GIGBOX MODULE IMPORTS' in line:
-          in_critical_section = True
-          elif 'LIB_ZYNCORE INITIALIZATION ORDER' in line:
-          in_critical_section = False  # Expected to fail (no JACK/liblo)
-          elif 'EXTERNAL DEPENDENCIES' in line:
-          in_critical_section = True
-          elif 'AUDIO CONFIGURATION PARSING' in line:
-          in_critical_section = False  # alsaaudio expected to fail
-          elif 'CONFIG FILE VALIDATION' in line:
-          in_critical_section = True
-
-          if '[FAIL]' in line:
-          test_name = line.split('[FAIL]')[1].strip()
-          if in_critical_section:
-            critical_failures.append(test_name)
-          else:
-            expected_limitations.append(test_name)
-
-          print("\n" + "=" * 60)
-          print("VALIDATION CLASSIFICATION")
-          print("=" * 60)
-          print(f"CRITICAL FAILURES: {len(critical_failures)}")
-          for f in critical_failures:
-          print(f"  - {f}")
-
-          print(f"\nEXPECTED CHROOT LIMITATIONS: {len(expected_limitations)}")
-          for f in expected_limitations:
-          print(f"  - {f}")
-
-          print("\n" + "=" * 60)
-          if len(critical_failures) == 0:
-          print("OVERALL RESULT: PASS (all critical tests passed)")
-          sys.exit(0)
-          else:
-          print("OVERALL RESULT: FAIL (critical failures detected)")
-          sys.exit(1)
-
-          import os
-          VALEOF
+          sudo cp "$INTEGRATION_DIR/scripts/run-validation-wrapper.py" "$WORK_DIR/root/tmp/run-validation-wrapper.py"
           sudo chmod +x "$WORK_DIR/root/tmp/run-validation-wrapper.py"
           
           # Prepare chroot for validation
@@ -415,7 +337,7 @@ jobs:
           
           # Run validation wrapper in chroot with QEMU ARM64
           set +e
-          sudo chroot "$WORK_DIR/root" /usr/bin/qemu-aarch64 /usr/bin/python3 /tmp/run-validation-wrapper.py
+          sudo chroot "$WORK_DIR/root" /usr/bin/python3 /tmp/run-validation-wrapper.py
           VAL_RESULT=$?
           set -e
           
@@ -464,6 +386,15 @@ jobs:
           
           SF2_COUNT=$(ls "$WORK_DIR/root/zynthian/zynthian-data/soundfonts/GIGBOX"/*.sf2 2>/dev/null | wc -l)
           echo "  ✓ Soundfonts: $SF2_COUNT files"
+          SOURCE_SF2_COUNT=$(find "$INTEGRATION_DIR/assets/soundfonts" -maxdepth 1 -type f -name '*.sf2' | wc -l)
+          if [ "$SF2_COUNT" -ne "$SOURCE_SF2_COUNT" ]; then
+            echo "::error::SoundFont count mismatch: source=$SOURCE_SF2_COUNT image=$SF2_COUNT"
+            FAILED=1
+          fi
+          if grep -R -l --include='*.sf2' 'version https://git-lfs.github.com/spec/v1' "$INTEGRATION_DIR/assets/soundfonts" >/dev/null 2>&1; then
+            echo "::error::A Git LFS pointer was copied instead of a real SoundFont"
+            FAILED=1
+          fi
           
           # Validate Python syntax
           echo "Validating Python syntax..."
@@ -584,7 +515,7 @@ jobs:
       # 17. PISHRINK (conditional, WITHOUT -z)
       # ---------------------------------------------------------
       - name: Run PiShrink on copy
-        if: ${{ !github.event.inputs.force_pishrink && steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }}
+        if: ${{ !inputs.force_pishrink && steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }}
         run: |
           MASTER_IMG="$FINAL_DIR/$MASTER_IMG"
           FINAL_IMG="$FINAL_DIR/$FINAL_IMG"
@@ -600,12 +531,12 @@ jobs:
           echo "Shrunk image: $FINAL_IMG ($SHRUNK_SIZE)"
 
       - name: Skip PiShrink (unsafe or forced)
-        if: ${{ github.event.inputs.force_pishrink || steps.pishrink_analysis.outputs.MIN_SAFE_GB > 13 }}
+        if: ${{ inputs.force_pishrink || steps.pishrink_analysis.outputs.MIN_SAFE_GB > 13 }}
         run: |
           MASTER_IMG="$FINAL_DIR/$MASTER_IMG"
           FINAL_IMG="$FINAL_DIR/$FINAL_IMG"
           
-          if [ "${{ github.event.inputs.force_pishrink }}" = "true" ]; then
+          if [ "${{ inputs.force_pishrink }}" = "true" ]; then
             echo "::warning::Force PiShrink enabled - proceeding despite safety check"
             cp "$MASTER_IMG" "$FINAL_IMG"
             sudo /usr/local/bin/pishrink.sh "$FINAL_IMG"
@@ -679,6 +610,10 @@ jobs:
           
           SF2_COUNT=$(ls "/mnt/verify_root/zynthian/zynthian-data/soundfonts/GIGBOX"/*.sf2 2>/dev/null | wc -l)
           echo "  ✓ Soundfonts: $SF2_COUNT files"
+          if [ "$SF2_COUNT" -ne 42 ]; then
+            echo "  ✗ Expected 42 SoundFonts, found $SF2_COUNT"
+            FAILED=1
+          fi
           
           # Verify WiFi MIDI port is 4210 (not 5004)
           if grep -q 'UDP_PORT = 4210' "/mnt/verify_root/usr/local/bin/gigbox-wifi-midi.py"; then
@@ -725,7 +660,7 @@ jobs:
           FINAL_XZ="$FINAL_DIR/$FINAL_XZ"
           
           echo "Compressing $FINAL_IMG to $FINAL_XZ..."
-          xz -T0 -9 -v "$FINAL_IMG"
+          xz -k -T0 -9 -v "$FINAL_IMG"
           
           XZ_SIZE=$(du -h "$FINAL_XZ" | cut -f1)
           echo "XZ_SIZE=$XZ_SIZE" >> $GITHUB_ENV
@@ -762,7 +697,7 @@ jobs:
           cd "$FINAL_DIR"
           
           # SHA256 for XZ (the primary artifact)
-          sha256sum "$FINAL_XZ" > checksums.txt
+          sha256sum "$FINAL_XZ" "$FINAL_IMG" > checksums.txt
           
           echo "Checksums:"
           cat checksums.txt
@@ -786,7 +721,7 @@ jobs:
 
           | Item | Value |
           |------|-------|
-          | Zynthian Version | ${{ github.event.inputs.zynthian_version }} |
+          | Zynthian Version | ${{ inputs.zynthian_version }} |
           | Base Image | Downloaded from Zynthian releases |
           | Architecture | ARM64 (Raspberry Pi 5) |
 
@@ -846,7 +781,7 @@ jobs:
           - Recording/overdub states themed
 
           ### 9. Soundfonts ✅ PASS
-          - 39 SF2 files in `/zynthian/zynthian-data/soundfonts/GIGBOX/`
+          - 42 SF2 files in `/zynthian/zynthian-data/soundfonts/GIGBOX/`
 
           ### 10. Boot Branding ✅ PASS
           - Custom boot logo, animation, GRUB menu, Plymouth theme
@@ -888,9 +823,9 @@ jobs:
           |--------|-------|
           | Master Image Size | ${MASTER_SIZE:-N/A} |
           | Min Safe Size (20% margin) | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB }}GB |
-          | Target (<13GB) | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 && echo 'ACHIEVED' || echo 'NOT SAFE - MASTER USED' }} |
+          | Target (<13GB) | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }} |
           | Final Image Size | ${SHRUNK_SIZE:-${MASTER_SIZE:-N/A}} |
-          | PiShrink Applied | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 && echo 'YES' || echo 'NO (unsafe)' }} |
+          | PiShrink Applied | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }} |
 
           ---
 
@@ -972,7 +907,7 @@ jobs:
           - USB DAC auto-detection for headphones/mic
           - MOD-UI launches manually, exits via encoder/nav long-press
           - WiFi UDP MIDI receiver (UDP 4210, GIGBOX legacy compatible)
-          - 39 GIGBOX soundfonts included
+          - 42 GIGBOX soundfonts included
           - Screen transition animations
           - Custom boot animation & branding
           - All Zynthian functionality preserved
@@ -1004,8 +939,8 @@ jobs:
           | Master Image Size | ${MASTER_SIZE:-N/A} |
           | Final Image Size | ${SHRUNK_SIZE:-${MASTER_SIZE:-N/A}} |
           | Compressed Size | ${XZ_SIZE:-N/A} |
-          | PiShrink Applied | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 && echo 'YES' || echo 'NO (unsafe)' }} |
-          | <13GB Achieved | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 && echo 'YES' || echo 'NO' }} |
+          | PiShrink Applied | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }} |
+          | <13GB Achieved | ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }} |
 
           ---
 
@@ -1123,7 +1058,7 @@ jobs:
           - MOD-UI launches manually (Button 8), exits via encoder long press
           - WiFi UDP MIDI receiver (auto-start, UDP 4210)
           - USB DAC auto-detection
-          - 39 GIGBOX soundfonts included
+          - 42 GIGBOX soundfonts included
           - All Zynthian functionality preserved
 
           ## Flashing
@@ -1212,7 +1147,7 @@ jobs:
           echo "Final Image: ${{ env.FINAL_IMG }}"
           echo "  Size: ${SHRUNK_SIZE:-${MASTER_SIZE:-N/A}}"
           echo ""
-          echo "PiShrink: ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 && echo 'APPLIED (safe)' || echo 'SKIPPED (unsafe)' }}"
+          echo "PiShrink safe threshold: ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB <= 13 }}"
           echo "  Min safe size: ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB }}GB"
           echo ""
           echo "ZIP Package: ${{ env.ZIP_NAME }}"

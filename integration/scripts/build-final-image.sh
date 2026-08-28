@@ -249,7 +249,7 @@ GIGBOX is a modified Zynthian OS with custom hardware integration, theming, and 
 - MOD-UI launches manually (Button 8), exits via encoder long press
 - WiFi UDP MIDI receiver (auto-start)
 - USB DAC auto-detection
-- 38 GIGBOX soundfonts included
+- 42 GIGBOX soundfonts included
 - All Zynthian functionality preserved
 
 ## Flashing
@@ -309,7 +309,7 @@ cat > "$FINAL_DIR/GIGBOX_BUILD_REPORT.md" << 'REPORTEOF'
 - modprobe.d: Card ordering (I2S=0, USB=1, HDMI=10)
 
 ### 6. Soundfonts (Complete)
-- 38 SF2 files installed to /zynthian/zynthian-data/soundfonts/GIGBOX/
+- 42 SF2 files installed to /zynthian/zynthian-data/soundfonts/GIGBOX/
 - Total: ~1.2 GB
 
 ### 7. On-Screen Navigation (Complete)
@@ -331,7 +331,7 @@ cat > "$FINAL_DIR/GIGBOX_BUILD_REPORT.md" << 'REPORTEOF'
 - Python syntax: PASS
 - File existence: PASS
 - GPIO conflicts: DOCUMENTED
-- Soundfont count: 38
+- Soundfont count: 42
 
 ## Known Limitations
 1. Buttons 2,3,4,9 conflict with I2S audio - use USB DAC or reassign

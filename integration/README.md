@@ -14,7 +14,7 @@ GIGBOX is a **complete modification of the Zynthian OS** - not a skin, not a the
 - ✅ MOD-UI integration (manual launch, hardware exit)
 - ✅ WiFi UDP MIDI receiver (auto-start)
 - ✅ USB DAC / PCM DAC audio configuration
-- ✅ 38 GIGBOX soundfonts pre-installed
+- ✅ 42 GIGBOX soundfonts pre-installed
 - ✅ Custom boot animation & branding
 - ✅ Screen transition animations (fade in/out)
 - ✅ SooperLooper & all plugins themed
@@ -238,7 +238,7 @@ echo -ne '\x90\x3c\x7f' | nc -u -w1 <gigbox-ip> 5004
 
 ## SOUNDFONTS
 
-**38 SF2 files** pre-installed in `/zynthian/zynthian-data/soundfonts/GIGBOX/`
+**42 SF2 files** pre-installed in `/zynthian/zynthian-data/soundfonts/GIGBOX/`
 
 | Category | Soundfonts |
 |----------|------------|
