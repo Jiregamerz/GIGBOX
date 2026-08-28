@@ -186,14 +186,24 @@ jobs:
       # ---------------------------------------------------------
       - name: Mount partitions
         run: |
-          BOOT_OFFSET="${{ steps.partitions.outputs.BOOT_OFFSET }}"
-          BOOT_SIZE="${{ steps.partitions.outputs.BOOT_SIZE }}"
-          ROOT_OFFSET="${{ steps.partitions.outputs.ROOT_OFFSET }}"
-          ROOT_SIZE="${{ steps.partitions.outputs.ROOT_SIZE }}"
-          
-          BOOT_LOOP=$(sudo losetup -f --show -o $BOOT_OFFSET --sizelimit $BOOT_SIZE "$WORK_DIR/gigbox-work.img")
-          ROOT_LOOP=$(sudo losetup -f --show -o $ROOT_OFFSET --sizelimit $ROOT_SIZE "$WORK_DIR/gigbox-work.img")
-          
+          sudo modprobe loop
+          LOOP_DEVICE=$(sudo losetup --find --show --partscan "$WORK_DIR/gigbox-work.img")
+          sudo partprobe "$LOOP_DEVICE" 2>/dev/null || true
+          for attempt in $(seq 1 10); do
+            if [ -b "${LOOP_DEVICE}p1" ] && [ -b "${LOOP_DEVICE}p2" ]; then
+              break
+            fi
+            sleep 1
+          done
+          if [ ! -b "${LOOP_DEVICE}p1" ] || [ ! -b "${LOOP_DEVICE}p2" ]; then
+            echo "::error::Partition devices were not created for $LOOP_DEVICE"
+            sudo losetup -d "$LOOP_DEVICE"
+            exit 1
+          fi
+
+          BOOT_LOOP="${LOOP_DEVICE}p1"
+          ROOT_LOOP="${LOOP_DEVICE}p2"
+          echo "LOOP_DEVICE=$LOOP_DEVICE" >> $GITHUB_ENV
           echo "BOOT_LOOP=$BOOT_LOOP" >> $GITHUB_ENV
           echo "ROOT_LOOP=$ROOT_LOOP" >> $GITHUB_ENV
           
@@ -439,8 +449,7 @@ jobs:
         run: |
           sudo umount "$WORK_DIR/boot"
           sudo umount "$WORK_DIR/root"
-          sudo losetup -d "${{ env.BOOT_LOOP }}"
-          sudo losetup -d "${{ env.ROOT_LOOP }}"
+          sudo losetup -d "${{ env.LOOP_DEVICE }}"
           
           # Copy to final location as master
           sudo cp "$WORK_DIR/gigbox-work.img" "$FINAL_DIR/$MASTER_IMG"
@@ -467,11 +476,19 @@ jobs:
           echo "--- Partition Table ---"
           sudo fdisk -l "$MASTER_IMG"
           
-          # Check filesystem on root partition
-          ROOT_OFFSET="${{ steps.partitions.outputs.ROOT_OFFSET }}"
-          ROOT_SIZE="${{ steps.partitions.outputs.ROOT_SIZE }}"
-          
-          ROOT_LOOP=$(sudo losetup -f --show -o $ROOT_OFFSET --sizelimit $ROOT_SIZE "$MASTER_IMG")
+          # Check filesystem on the root partition using partition scanning.
+          MASTER_LOOP=$(sudo losetup --find --show --partscan "$MASTER_IMG")
+          sudo partprobe "$MASTER_LOOP" 2>/dev/null || true
+          ROOT_LOOP="${MASTER_LOOP}p2"
+          for attempt in $(seq 1 10); do
+            [ -b "$ROOT_LOOP" ] && break
+            sleep 1
+          done
+          if [ ! -b "$ROOT_LOOP" ]; then
+            echo "::error::Root partition was not created for $MASTER_LOOP"
+            sudo losetup -d "$MASTER_LOOP"
+            exit 1
+          fi
           
           echo ""
           echo "--- Root Filesystem Check ---"
@@ -494,7 +511,7 @@ jobs:
           BLOCK_SIZE=$(sudo dumpe2fs -h "$ROOT_LOOP" 2>/dev/null | grep "Block size" | awk '{print $3}' | head -1 || echo "4096")
           
           # Now safe to detach
-          sudo losetup -d "$ROOT_LOOP"
+          sudo losetup -d "$MASTER_LOOP"
           
           if [ -n "$USED_BLOCKS" ] && [ "$USED_BLOCKS" -gt 0 ]; then
             USED_BYTES=$((USED_BLOCKS * BLOCK_SIZE))
@@ -564,11 +581,19 @@ jobs:
           echo "--- Partition Table ---"
           sudo fdisk -l "$FINAL_IMG"
           
-          # Check filesystem integrity
-          ROOT_OFFSET="${{ steps.partitions.outputs.ROOT_OFFSET }}"
-          ROOT_SIZE="${{ steps.partitions.outputs.ROOT_SIZE }}"
-          
-          ROOT_LOOP=$(sudo losetup -f --show -o $ROOT_OFFSET --sizelimit $ROOT_SIZE "$FINAL_IMG")
+          # Check filesystem integrity using partition scanning.
+          FINAL_LOOP=$(sudo losetup --find --show --partscan "$FINAL_IMG")
+          sudo partprobe "$FINAL_LOOP" 2>/dev/null || true
+          ROOT_LOOP="${FINAL_LOOP}p2"
+          for attempt in $(seq 1 10); do
+            [ -b "$ROOT_LOOP" ] && break
+            sleep 1
+          done
+          if [ ! -b "$ROOT_LOOP" ]; then
+            echo "::error::Root partition was not created for $FINAL_LOOP"
+            sudo losetup -d "$FINAL_LOOP"
+            exit 1
+          fi
           
           echo ""
           echo "--- Filesystem Check ---"
@@ -630,7 +655,7 @@ jobs:
           fi
           
           sudo umount /mnt/verify_root
-          sudo losetup -d "$ROOT_LOOP"
+          sudo losetup -d "$FINAL_LOOP"
           
           if [ $FAILED -ne 0 ]; then
             echo "::error::Post-shrink validation FAILED"
