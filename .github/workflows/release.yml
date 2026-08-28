@@ -385,6 +385,8 @@ jobs:
             "usr/local/bin/gigbox-wifi-midi.py"
             "etc/systemd/system/gigbox-wifi-midi.service"
             "etc/asound.conf"
+            "etc/gigbox/asound-auto.conf"
+            "etc/modprobe.d/gigbox-audio.conf"
             "etc/udev/rules.d/99-gigbox-audio.rules"
             "zynthian/zynthian-ui/img/zynthian_gui_loading.gif"
             "zynthian/zynthian-ui/img/clean/zynthian_logo_boot.png"

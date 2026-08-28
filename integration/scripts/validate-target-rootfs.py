@@ -193,6 +193,18 @@ def main():
         return True
     results.append(test("gigbox-audio-init.service", test_audio_init_service))
 
+    def test_modprobe_config():
+        with open('/etc/modprobe.d/gigbox-audio.conf') as f:
+            lines = f.read().splitlines()
+        for number, line in enumerate(lines, 1):
+            fields = line.split()
+            if fields and fields[0] == 'options':
+                assert len(fields) >= 3 and '=' not in fields[1], \
+                    f"Invalid options directive on line {number}"
+        print("    modprobe options syntax: verified")
+        return True
+    results.append(test("gigbox-audio.conf syntax", test_modprobe_config))
+
     def test_udev_rules():
         with open('/etc/udev/rules.d/99-gigbox-audio.rules') as f:
             content = f.read()

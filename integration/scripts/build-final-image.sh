@@ -183,6 +183,7 @@ CHECKS=(
     "$WORK_DIR/root/etc/systemd/system/gigbox-wifi-midi.service"
     "$WORK_DIR/root/etc/asound.conf"
     "$WORK_DIR/root/etc/gigbox/asound-auto.conf"
+    "$WORK_DIR/root/etc/modprobe.d/gigbox-audio.conf"
     "$WORK_DIR/root/etc/systemd/system/gigbox-audio-init.service"
     "$WORK_DIR/root/etc/udev/rules.d/99-gigbox-audio.rules"
     "$WORK_DIR/root/zynthian/zynthian-ui/img/zynthian_gui_loading.gif"
