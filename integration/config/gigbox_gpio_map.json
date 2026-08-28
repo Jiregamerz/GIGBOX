@@ -1,0 +1,93 @@
+{
+  "gigbox_gpio_map": {
+    "version": "2.0",
+    "hardware": "GIGBOX SPOOKI INSTRUMENTS",
+    "target": "Raspberry Pi 5",
+    "display": "7-inch 800x480 MIPI DSI",
+    "audio": {
+      "pcm_dac": "I2S (L/R Main Output) - GPIO 18,19,20,21 RESERVED",
+      "usb_dac": "USB Audio Class (Headphones/Mic) - PRIMARY RECOMMENDED",
+      "detection": "auto via udev stable symlinks",
+      "note": "I2S pins explicitly reserved - no button conflicts"
+    },
+    "encoder": {
+      "a": { "bcm": 5, "physical_pin": 29, "direction": "input", "pull": "up", "active_low": true, "function": "Encoder Channel A", "debounce_ms": 1, "conflict": "None" },
+      "b": { "bcm": 6, "physical_pin": 31, "direction": "input", "pull": "up", "active_low": true, "function": "Encoder Channel B", "debounce_ms": 1, "conflict": "None" },
+      "switch": { "bcm": 13, "physical_pin": 33, "direction": "input", "pull": "up", "active_low": true, "function": "Encoder Push Switch (SELECT/OK)", "debounce_ms": 5, "short_press": "SELECT", "long_press_ms": 500, "long_press": "BACK/CANCEL", "conflict": "PWM1 - Acceptable (USB DAC used)" }
+    },
+    "navigation": {
+      "up": { "bcm": 17, "physical_pin": 11, "direction": "input", "pull": "up", "active_low": true, "function": "Navigation UP", "debounce_ms": 5, "short_press": "UP", "long_press_ms": 500, "long_press": "UP_LONG", "conflict": "None" },
+      "down": { "bcm": 27, "physical_pin": 13, "direction": "input", "pull": "up", "active_low": true, "function": "Navigation DOWN", "debounce_ms": 5, "short_press": "DOWN", "long_press_ms": 500, "long_press": "DOWN_LONG", "conflict": "None" },
+      "left": { "bcm": 22, "physical_pin": 15, "direction": "input", "pull": "up", "active_low": true, "function": "Navigation LEFT", "debounce_ms": 5, "short_press": "LEFT", "long_press_ms": 500, "long_press": "LEFT_LONG", "conflict": "None" },
+      "right": { "bcm": 23, "physical_pin": 16, "direction": "input", "pull": "up", "active_low": true, "function": "Navigation RIGHT", "debounce_ms": 5, "short_press": "RIGHT", "long_press_ms": 500, "long_press": "RIGHT_LONG", "conflict": "None" },
+      "click": { "bcm": 24, "physical_pin": 18, "direction": "input", "pull": "up", "active_low": true, "function": "Navigation CLICK (SELECT/OK)", "debounce_ms": 5, "short_press": "SELECT", "long_press_ms": 500, "long_press": "BACK/CANCEL", "conflict": "None" }
+    },
+    "buttons": [
+      { "index": 1, "bcm": 16, "physical_pin": 36, "direction": "input", "pull": "up", "active_low": true, "function": "LAYER_UP", "debounce_ms": 5, "short_press": "LAYER_UP", "long_press_ms": 500, "long_press": "LAYER_MENU", "midi_cc": 80, "midi_channel": 0, "conflict": "None" },
+      { "index": 2, "bcm": 7, "physical_pin": 26, "direction": "input", "pull": "up", "active_low": true, "function": "LAYER_DOWN", "debounce_ms": 5, "short_press": "LAYER_DOWN", "long_press_ms": 500, "long_press": "LAYER_MENU", "midi_cc": 81, "midi_channel": 0, "conflict": "SPI0_CE1 - Acceptable (no SPI0 on header)" },
+      { "index": 3, "bcm": 8, "physical_pin": 24, "direction": "input", "pull": "up", "active_low": true, "function": "CHAIN_LEFT", "debounce_ms": 5, "short_press": "CHAIN_LEFT", "long_press_ms": 500, "long_press": "CHAIN_MENU", "midi_cc": 82, "midi_channel": 0, "conflict": "SPI0_CE0 - Acceptable (no SPI0 on header)" },
+      { "index": 4, "bcm": 9, "physical_pin": 21, "direction": "input", "pull": "up", "active_low": true, "function": "CHAIN_RIGHT", "debounce_ms": 5, "short_press": "CHAIN_RIGHT", "long_press_ms": 500, "long_press": "CHAIN_MENU", "midi_cc": 83, "midi_channel": 0, "conflict": "SPI0_MISO - Acceptable (no SPI0 on header)" },
+      { "index": 5, "bcm": 25, "physical_pin": 22, "direction": "input", "pull": "up", "active_low": true, "function": "SNAPSHOT_UP", "debounce_ms": 5, "short_press": "SNAPSHOT_UP", "long_press_ms": 500, "long_press": "SNAPSHOT_MENU", "midi_cc": 84, "midi_channel": 0, "conflict": "None" },
+      { "index": 6, "bcm": 26, "physical_pin": 37, "direction": "input", "pull": "up", "active_low": true, "function": "SNAPSHOT_DOWN", "debounce_ms": 5, "short_press": "SNAPSHOT_DOWN", "long_press_ms": 500, "long_press": "SNAPSHOT_MENU", "midi_cc": 85, "midi_channel": 0, "conflict": "None" },
+      { "index": 7, "bcm": 12, "physical_pin": 32, "direction": "input", "pull": "up", "active_low": true, "function": "MIXER", "debounce_ms": 5, "short_press": "MIXER", "long_press_ms": 500, "long_press": "AUDIO_MENU", "midi_cc": 86, "midi_channel": 0, "conflict": "PWM0 - Acceptable (USB DAC used)" },
+      { "index": 8, "bcm": 4, "physical_pin": 7, "direction": "input", "pull": "up", "active_low": true, "function": "MOD_UI", "debounce_ms": 5, "short_press": "MOD_UI", "long_press_ms": 500, "long_press": "MOD_UI_MENU", "midi_cc": 87, "midi_channel": 0, "conflict": "I2C1_SDA alt - Acceptable (no I2C1 devices)" },
+      { "index": 9, "bcm": 10, "physical_pin": 19, "direction": "input", "pull": "up", "active_low": true, "function": "QUICK_EDIT", "debounce_ms": 5, "short_press": "QUICK_EDIT", "long_press_ms": 500, "long_press": "ENGINE_MENU", "midi_cc": 88, "midi_channel": 0, "conflict": "SPI0_MOSI - Acceptable (no SPI0 on header)" },
+      { "index": 10, "bcm": 11, "physical_pin": 23, "direction": "input", "pull": "up", "active_low": true, "function": "PANIC", "debounce_ms": 5, "short_press": "PANIC", "long_press_ms": 500, "long_press": "SYSTEM_MENU", "midi_cc": 89, "midi_channel": 0, "conflict": "SPI0_SCLK - Acceptable (no SPI0 on header)" }
+    ],
+    "i2s_reserved": {
+      "note": "GPIO 18,19,20,21 EXPLICITLY RESERVED for PCM DAC I2S - DO NOT USE",
+      "pins": [
+        { "bcm": 18, "physical": 12, "function": "I2S_CLK" },
+        { "bcm": 19, "physical": 35, "function": "I2S_FS" },
+        { "bcm": 20, "physical": 38, "function": "I2S_DIN" },
+        { "bcm": 21, "physical": 40, "function": "I2S_DOUT" }
+      ]
+    },
+    "potentiometer": {
+      "status": "REMOVED",
+      "reason": "No ADC hardware - Raspberry Pi GPIO cannot read analog signals directly",
+      "note": "Use rotary encoder for master volume control"
+    },
+    "softpot": {
+      "status": "REMOVED",
+      "reason": "No ADC hardware - Future expansion would require external ADC (MCP3008, ADS1115, etc.)"
+    },
+    "reserved_pins": {
+      "i2c0_hat": { "bcm": [0, 1], "physical": [27, 28], "function": "I2C0 (HAT EEPROM) - DO NOT USE" },
+      "i2c1_system": { "bcm": [2, 3], "physical": [3, 5], "function": "I2C1 (System peripherals) - DO NOT USE" },
+      "uart0_console": { "bcm": [14, 15], "physical": [8, 10], "function": "UART0 (Serial console) - DO NOT USE" },
+      "i2s_pcm_dac": { "bcm": [18, 19, 20, 21], "physical": [12, 35, 38, 40], "function": "I2S (PCM DAC) - RESERVED, DO NOT USE" }
+    },
+    "wiring_instructions": {
+      "ground": "All buttons/switches/encoder connect to common GND (Physical pins 6, 9, 14, 20, 25, 30, 34, 39)",
+      "encoder": "Encoder A -> Pin 29 (BCM 5), Encoder B -> Pin 31 (BCM 6), Encoder Push -> Pin 33 (BCM 13)",
+      "navigation": "UP -> Pin 11 (BCM 17), DOWN -> Pin 13 (BCM 27), LEFT -> Pin 15 (BCM 22), RIGHT -> Pin 16 (BCM 23), CLICK -> Pin 18 (BCM 24)",
+      "buttons": "Btn1 -> Pin 36 (BCM 16), Btn2 -> Pin 26 (BCM 7), Btn3 -> Pin 24 (BCM 8), Btn4 -> Pin 21 (BCM 9), Btn5 -> Pin 22 (BCM 25), Btn6 -> Pin 37 (BCM 26), Btn7 -> Pin 32 (BCM 12), Btn8 -> Pin 7 (BCM 4), Btn9 -> Pin 19 (BCM 10), Btn10 -> Pin 23 (BCM 11)",
+      "important": [
+        "Use twisted pairs for encoder A/B signals",
+        "Add 100nF capacitors across each switch for hardware debounce (optional)",
+        "Keep wires away from high-current audio lines",
+        "I2S pins (18,19,20,21) are RESERVED for PCM DAC - DO NOT CONNECT BUTTONS",
+        "SPI0 pins (7,8,9,10,11) used for Buttons 2,3,4,9,10 - acceptable (no SPI0 on 40-pin header)",
+        "Button 8 (BCM 4) is I2C1_SDA alt - avoid if I2C devices present",
+        "Encoder Push (BCM 13) is PWM1 - acceptable (USB DAC used)",
+        "Button 7 (BCM 12) is PWM0 - acceptable (USB DAC used)"
+      ]
+    },
+    "notes": [
+      "TOTAL GPIO INPUTS: 18 (3 encoder + 5 navigation + 10 buttons)",
+      "NO potentiometer, NO softpot, NO ADC requirement",
+      "All GPIO use BCM numbering",
+      "All inputs use internal pull-up resistors (active low = pressed)",
+      "Software debounce: 5ms buttons/switches, 1ms encoder quadrature",
+      "Long press threshold: 500ms",
+      "Encoder: 4 steps per detent, CW = increase/next, CCW = decrease/previous",
+      "Navigation module replaces on-screen directional arrows",
+      "Physical CLICK and Encoder Push both = SELECT/OK (short), BACK/CANCEL (long)",
+      "Touchscreen remains functional for all other interactions",
+      "10 Tactile buttons: fully assignable via UI, default mapping shown",
+      "MOD-UI exit: Encoder long press OR Navigation CLICK long press (via exit daemon)",
+      "VALIDATION REQUIRED ON REAL HARDWARE: All 18 inputs, encoder direction, long press, no ghost events"
+    ]
+  }
+}

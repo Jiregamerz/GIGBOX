@@ -1,0 +1,298 @@
+#!/bin/bash
+# GIGBOX MOD-UI LAUNCHER
+# SPOOKI INSTRUMENTS - GIGBOX
+# Launches MOD-UI locally on the device display when selected
+# Does NOT auto-start at boot
+# Exit via: Encoder long press (via daemon) OR Navigation CLICK long press (via daemon) OR on-screen exit button
+
+set -e
+
+MOD_UI_URL="http://localhost:8888"
+CHROMIUM_FLAGS="--kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --no-first-run --fast --fast-start --disable-extensions --disable-component-extensions-with-background-pages --disable-background-networking --disable-sync --disable-default-apps --mute-audio --autoplay-policy=no-user-gesture-required --start-fullscreen --window-position=0,0 --window-size=800,480 --force-device-scale-factor=1 --device-scale-factor=1 --disable-pinch --overscroll-history-navigation=0 --disable-features=TranslateUI --hide-scrollbars --disable-gesture-typing --disable-touch-adjustment --disable-touch-drag-drop --disable-touch-links --enable-touch-events=auto --touch-events=enabled"
+
+EXIT_BUTTON_PID=""
+CHROMIUM_PID=""
+MOD_HOST_STARTED=false
+
+# Colors for logging
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log() {
+    echo -e "${BLUE}[GIGBOX-MODUI]${NC} $1"
+}
+
+warn() {
+    echo -e "${YELLOW}[GIGBOX-MODUI]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[GIGBOX-MODUI]${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}[GIGBOX-MODUI]${NC} $1"
+}
+
+cleanup() {
+    log "Cleaning up MOD-UI session..."
+    
+    # Signal exit daemon that MOD-UI is ending
+    touch /tmp/gigbox_modui_session_end
+    
+    # Kill exit button overlay
+    if [ -n "$EXIT_BUTTON_PID" ] && kill -0 "$EXIT_BUTTON_PID" 2>/dev/null; then
+        kill "$EXIT_BUTTON_PID" 2>/dev/null || true
+        wait "$EXIT_BUTTON_PID" 2>/dev/null || true
+    fi
+    
+    # Kill chromium
+    if [ -n "$CHROMIUM_PID" ] && kill -0 "$CHROMIUM_PID" 2>/dev/null; then
+        kill "$CHROMIUM_PID" 2>/dev/null || true
+        wait "$CHROMIUM_PID" 2>/dev/null || true
+    fi
+    
+    # Kill any remaining chromium processes for this session
+    pkill -f "chromium.*${MOD_UI_URL}" 2>/dev/null || true
+    
+    # Restore cursor
+    export DISPLAY=:0
+    xsetroot -cursor_name left_ptr 2>/dev/null || true
+    
+    log "MOD-UI session ended"
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM EXIT
+
+# Check if mod-host is running, start if needed
+ensure_mod_host() {
+    if pgrep -x "mod-host" > /dev/null; then
+        log "mod-host already running"
+        return 0
+    fi
+    
+    log "Starting mod-host..."
+    # Start mod-host with appropriate audio settings
+    # Use the same audio backend as Zynthian (JACK or ALSA)
+    if systemctl is-active --quiet jackd 2>/dev/null; then
+        mod-host -p 8888 -P 8889 -s jack &
+    else
+        mod-host -p 8888 -P 8889 -s alsa &
+    fi
+    
+    MOD_HOST_PID=$!
+    sleep 2
+    
+    if kill -0 "$MOD_HOST_PID" 2>/dev/null; then
+        success "mod-host started (PID: $MOD_HOST_PID)"
+        MOD_HOST_STARTED=true
+    else
+        error "Failed to start mod-host"
+        return 1
+    fi
+}
+
+# Wait for MOD-UI web server to be ready
+wait_for_mod_ui() {
+    log "Waiting for MOD-UI web server..."
+    local max_attempts=30
+    local attempt=0
+    
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -s -o /dev/null -w "%{http_code}" "$MOD_UI_URL" 2>/dev/null | grep -q "200\|301\|302"; then
+            success "MOD-UI web server ready"
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+    
+    error "MOD-UI web server did not respond in time"
+    return 1
+}
+
+# Create and display the exit button overlay (GTK3)
+create_exit_button() {
+    log "Creating exit button overlay..."
+    
+    # Create a Python script for the exit button (GTK3 overlay)
+    cat > /tmp/gigbox_modui_exit.py << 'PYEOF'
+#!/usr/bin/python3
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+from gi.repository import Gtk, Gdk, GLib
+import signal
+import sys
+import os
+
+class ExitButtonWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        self.set_decorated(False)
+        self.set_keep_above(True)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DOCK)
+        
+        # Fullscreen transparent window
+        self.set_default_size(800, 480)
+        self.move(0, 0)
+        
+        # Make window transparent
+        self.set_app_paintable(True)
+        screen = self.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual and screen.is_composited():
+            self.set_visual(visual)
+        
+        # Exit button - top right corner
+        self.button = Gtk.Button()
+        self.button.set_size_request(60, 60)
+        self.button.set_halign(Gtk.Align.END)
+        self.button.set_valign(Gtk.Align.START)
+        self.button.set_margin_top(16)
+        self.button.set_margin_end(16)
+        
+        # Style the button with CSS
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(b"""
+            button {
+                background: radial-gradient(circle at 30% 30%, #1a1a1a, #0d0d0d, #030303);
+                border: 2px solid #ff1744;
+                border-radius: 30px;
+                color: #ff3355;
+                font-family: "Audiowide", sans-serif;
+                font-size: 18px;
+                box-shadow: 0 0 20px #2a0508, 0 4px 16px rgba(0,0,0,0.5);
+                transition: all 150ms ease-out;
+            }
+            button:hover {
+                background: radial-gradient(circle at 30% 30%, #2a0508, #ff1744, #030303);
+                border-color: #ff3355;
+                box-shadow: 0 0 30px #ff1744, 0 4px 16px rgba(0,0,0,0.5);
+            }
+            button:active {
+                background: radial-gradient(circle at 30% 30%, #ff1744, #aa0011, #030303);
+                box-shadow: 0 0 40px #ff1744, inset 0 0 20px #ff1744;
+            }
+        """)
+        style_context = self.button.get_style_context()
+        style_context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        
+        # Button label
+        label = Gtk.Label()
+        label.set_markup("<span font_family='Audiowide' size='large'>✕</span>")
+        label.set_use_markup(True)
+        self.button.add(label)
+        
+        self.button.connect("clicked", self.on_exit_clicked)
+        
+        # Main container
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.pack_start(self.button, False, False, 0)
+        self.add(box)
+        
+        # Connect signals
+        self.connect("destroy", self.on_destroy)
+        
+        # Show all
+        self.show_all()
+        
+        # Monitor session end file
+        self.session_end_file = "/tmp/gigbox_modui_session_end"
+        GLib.timeout_add(500, self.check_session_end)
+        
+        # Handle keyboard interrupts
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+    
+    def check_session_end(self):
+        if os.path.exists(self.session_end_file):
+            os.unlink(self.session_end_file)
+            Gtk.main_quit()
+            return False
+        return True
+    
+    def on_exit_clicked(self, widget):
+        log("Exit button clicked - closing MOD-UI")
+        Gtk.main_quit()
+    
+    def on_destroy(self, widget):
+        Gtk.main_quit()
+    
+    def signal_handler(self, signum, frame):
+        Gtk.main_quit()
+
+def log(msg):
+    print(f"[GIGBOX-MODUI-EXIT] {msg}", flush=True)
+
+if __name__ == "__main__":
+    win = ExitButtonWindow()
+    Gtk.main()
+PYEOF
+    
+    # Run the exit button in background
+    python3 /tmp/gigbox_modui_exit.py &
+    EXIT_BUTTON_PID=$!
+    
+    log "Exit button overlay created (PID: $EXIT_BUTTON_PID)"
+}
+
+# Main execution
+main() {
+    log "========================================="
+    log "  GIGBOX MOD-UI LAUNCHER"
+    log "  SPOOKI INSTRUMENTS"
+    log "========================================="
+    
+    # Ensure we're on the right display
+    export DISPLAY=:0
+    export XAUTHORITY=/home/zynthian/.Xauthority
+    
+    # Hide cursor
+    xsetroot -cursor_name left_ptr 2>/dev/null || true
+    unclutter -idle 0 -root -noevents &
+    UNCLUTTER_PID=$!
+    
+    # Ensure mod-host is running
+    ensure_mod_host || exit 1
+    
+    # Wait for MOD-UI to be ready
+    wait_for_mod_ui || exit 1
+    
+    # Create exit button overlay
+    create_exit_button
+    
+    # Signal exit daemon that MOD-UI session started
+    touch /tmp/gigbox_modui_session_start
+    
+    # Launch Chromium in kiosk mode
+    log "Launching Chromium for MOD-UI..."
+    chromium-browser $CHROMIUM_FLAGS "$MOD_UI_URL" &
+    CHROMIUM_PID=$!
+    
+    success "MOD-UI launched (Chromium PID: $CHROMIUM_PID)"
+    log "Exit methods:"
+    log "  - On-screen exit button (top-right) ✕"
+    log "  - Encoder long press (500ms) - handled by exit daemon"
+    log "  - Navigation CLICK long press (500ms) - handled by exit daemon"
+    log "  - Ctrl+C in terminal"
+    
+    # Wait for chromium to exit
+    wait "$CHROMIUM_PID"
+    CHROMIUM_EXIT_CODE=$?
+    
+    log "Chromium exited with code $CHROMIUM_EXIT_CODE"
+    
+    # Cleanup
+    kill "$UNCLUTTER_PID" 2>/dev/null || true
+    cleanup
+}
+
+# Run main
+main "$@"

@@ -1,0 +1,577 @@
+/* GIGBOX SPOOKI EDITION - SooperLooper Theme */
+/* SPOOKI INSTRUMENTS - GIGBOX */
+/* Dark futuristic electronic instrument aesthetic */
+/* Near black background, neon red primary accent */
+/* Red beat highlights, recorded loop lengths in red */
+
+@define-color bg_dark       #030303;
+@define-color bg_panel      #080808;
+@define-color bg_raised     #0d0d0d;
+@define-color bg_highlight  #1a1a1a;
+@define-color border_dim    #1a1a1a;
+@define-color border_norm   #2a2a2a;
+@define-color border_bright #3a3a3a;
+@define-color neon_red      #ff1744;
+@define-color neon_red_glow #ff3355;
+@define-color neon_red_dim  #2a0508;
+@define-color neon_red_bright #ff4466;
+@define-color amber        #ffaa00;
+@define-color amber_dim    #3a2a00;
+@define-color text_primary  #ffffff;
+@define-color text_secondary #b0b0b0;
+@define-color text_muted    #606060;
+@define-color pcb_trace    #2a0808;
+@define-color pcb_via      #ff1744;
+@define-color beat_red     #ff1744;
+@define-color beat_red_glow #ff3355;
+@define-color loop_recorded #ff1744;
+@define-color loop_playing #ff3355;
+@define-color loop_overdub #ffaa00;
+
+/* ===== BASE ===== */
+* {
+  background-color: @bg_dark;
+  color: @text_primary;
+  border-radius: 2px;
+  font-family: "Audiowide", sans-serif;
+}
+
+/* ===== MAIN WINDOW ===== */
+MainWindow, .main-window {
+  background-color: @bg_dark;
+  border: 1px solid @border_norm;
+}
+
+/* ===== BUTTONS ===== */
+Button, .button {
+  background-color: @bg_panel;
+  border: 1px solid @border_norm;
+  color: @text_primary;
+  padding: 8px 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85em;
+  transition: all 100ms ease-out;
+}
+
+Button:hover, .button:hover {
+  background-color: @bg_raised;
+  border-color: @neon_red;
+  box-shadow: 0 0 12px @neon_red_dim;
+}
+
+Button:focus, .button:focus {
+  border-color: @neon_red_glow;
+  box-shadow: 0 0 16px @neon_red_glow;
+  outline: none;
+}
+
+Button:active, .button:active {
+  background-color: @bg_highlight;
+  border-color: @neon_red_glow;
+}
+
+/* Record/Overdub/Play buttons - SPECIAL STATES */
+Button.record-armed, .button.record-armed {
+  background-color: @neon_red_dim;
+  border-color: @beat_red;
+  color: @beat_red_glow;
+  animation: record-pulse 1s ease-in-out infinite;
+}
+
+Button.recording, .button.recording {
+  background-color: @beat_red;
+  border-color: @beat_red_glow;
+  color: @text_primary;
+  animation: recording-pulse 0.5s ease-in-out infinite;
+}
+
+Button.overdub, .button.overdub {
+  background-color: @amber_dim;
+  border-color: @amber;
+  color: @amber;
+  animation: overdub-pulse 1s ease-in-out infinite;
+}
+
+Button.playing, .button.playing {
+  background-color: #0a2a0a;
+  border-color: @beat_red;
+  color: @beat_red_glow;
+}
+
+Button.mute, .button.mute {
+  background-color: @bg_highlight;
+  border-color: @border_dim;
+  color: @text_muted;
+}
+
+Button.solo, .button.solo {
+  background-color: @amber_dim;
+  border-color: @amber;
+  color: @amber;
+}
+
+@keyframes record-pulse {
+  0%, 100% { box-shadow: 0 0 8px @beat_red; }
+  50% { box-shadow: 0 0 20px @beat_red_glow, 0 0 30px @beat_red; }
+}
+
+@keyframes recording-pulse {
+  0%, 100% { box-shadow: 0 0 12px @beat_red_glow, 0 0 24px @beat_red; }
+  50% { box-shadow: 0 0 24px @beat_red_glow, 0 0 48px @beat_red; }
+}
+
+@keyframes overdub-pulse {
+  0%, 100% { box-shadow: 0 0 8px @amber; }
+  50% { box-shadow: 0 0 20px @amber, 0 0 30px @amber; }
+}
+
+/* ===== SLIDERS / FADERS ===== */
+Scale, .scale {
+  background-color: transparent;
+}
+
+Scale trough, .scale trough {
+  background-color: @bg_panel;
+  border: 1px solid @border_dim;
+  border-radius: 4px;
+  min-height: 12px;
+  min-width: 12px;
+  box-shadow: inset 0 0 10px @neon_red_dim;
+}
+
+Scale highlight, .scale highlight {
+  background: linear-gradient(90deg, @neon_red_dim, @neon_red, @neon_red_glow);
+  border-radius: 4px;
+  box-shadow: 0 0 10px @neon_red_glow, inset 0 0 10px @neon_red_glow;
+}
+
+Scale slider, .scale slider {
+  background: radial-gradient(circle at 30% 30%, @neon_red_glow, @neon_red, @neon_red_dim);
+  border: 2px solid @bg_dark;
+  border-radius: 50%;
+  min-width: 22px;
+  min-height: 22px;
+  box-shadow: 0 0 16px @neon_red_glow, 0 2px 8px rgba(0,0,0,0.5);
+  transition: all 80ms ease-out;
+}
+
+Scale slider:hover, .scale slider:hover {
+  box-shadow: 0 0 24px @neon_red_glow, 0 4px 16px rgba(0,0,0,0.5);
+  transform: scale(1.15);
+}
+
+/* Volume fader - special styling */
+Scale.volume-fader trough, .scale.volume-fader trough {
+  background: linear-gradient(0deg, @bg_panel, @bg_dark);
+  border-color: @pcb_trace;
+}
+
+Scale.volume-fader highlight, .scale.volume-fader highlight {
+  background: linear-gradient(0deg, @neon_red_dim, @neon_red, @neon_red_glow);
+}
+
+Scale.volume-fader slider, .scale.volume-fader slider {
+  min-width: 28px;
+  min-height: 28px;
+}
+
+/* Pan slider */
+Scale.pan-slider trough, .scale.pan-slider trough {
+  background: linear-gradient(90deg, @neon_red_dim, @bg_panel, @neon_red_dim);
+}
+
+/* ===== WAVEFORM DISPLAY ===== */
+DrawingArea.waveform, .waveform {
+  background-color: #000000;
+  border: 1px solid @pcb_trace;
+  border-radius: 4px;
+}
+
+/* Waveform background grid */
+DrawingArea.waveform grid, .waveform grid {
+  stroke: @pcb_trace;
+  stroke-width: 0.5px;
+}
+
+/* Waveform data */
+DrawingArea.waveform waveform-data, .waveform waveform-data {
+  stroke: @neon_red;
+  stroke-width: 1.5px;
+  fill: @neon_red_dim;
+  fill-opacity: 0.3;
+}
+
+/* BEAT MARKERS - NEON RED */
+DrawingArea.waveform beat-marker, .waveform beat-marker {
+  stroke: @beat_red;
+  stroke-width: 2px;
+  fill: @beat_red_glow;
+}
+
+/* Beat marker glow animation */
+@keyframes beat-marker-glow {
+  0%, 100% { 
+    stroke: @beat_red; 
+    filter: drop-shadow(0 0 4px @beat_red_glow); 
+  }
+  50% { 
+    stroke: @beat_red_glow; 
+    filter: drop-shadow(0 0 12px @beat_red_glow) drop-shadow(0 0 20px @beat_red); 
+  }
+}
+
+DrawingArea.waveform beat-marker.active, .waveform beat-marker.active {
+  animation: beat-marker-glow 0.5s ease-in-out infinite;
+}
+
+/* LOOP MARKERS - RECORDED LENGTHS IN RED */
+DrawingArea.waveform loop-marker, .waveform loop-marker {
+  stroke: @loop_recorded;
+  stroke-width: 3px;
+  fill: @loop_recorded;
+  fill-opacity: 0.2;
+}
+
+/* Loop start/end markers */
+DrawingArea.waveform loop-start, .waveform loop-start {
+  stroke: @neon_red_glow;
+  stroke-width: 3px;
+  marker-end: url(#loop-start-arrow);
+}
+
+DrawingArea.waveform loop-end, .waveform loop-end {
+  stroke: @neon_red_glow;
+  stroke-width: 3px;
+  marker-start: url(#loop-end-arrow);
+}
+
+/* Recorded loop region highlight */
+DrawingArea.waveform loop-region, .waveform loop-region {
+  fill: @neon_red_dim;
+  fill-opacity: 0.15;
+  stroke: @neon_red;
+  stroke-width: 1px;
+  stroke-dasharray: 4, 4;
+}
+
+/* Overdub region */
+DrawingArea.waveform overdub-region, .waveform overdub-region {
+  fill: @amber_dim;
+  fill-opacity: 0.15;
+  stroke: @amber;
+  stroke-width: 1px;
+  stroke-dasharray: 4, 4;
+}
+
+/* Playhead */
+DrawingArea.waveform playhead, .waveform playhead {
+  stroke: @neon_red_glow;
+  stroke-width: 2px;
+  animation: playhead-glow 1s ease-in-out infinite;
+}
+
+@keyframes playhead-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px @neon_red_glow); }
+  50% { filter: drop-shadow(0 0 16px @neon_red_glow) drop-shadow(0 0 24px @neon_red); }
+}
+
+/* ===== LOOP LENGTH DISPLAY ===== */
+Label.loop-length, .loop-length {
+  color: @loop_recorded;
+  font-weight: bold;
+  font-family: "Audiowide", monospace;
+  font-size: 1.1em;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px @beat_red_glow;
+}
+
+/* Loop time display */
+Label.loop-time, .loop-time {
+  color: @beat_red_glow;
+  font-family: "Audiowide", monospace;
+  font-size: 0.9em;
+}
+
+/* ===== LEVEL METERS ===== */
+LevelBar, .levelbar {
+  background-color: @bg_panel;
+  border: 1px solid @border_dim;
+  border-radius: 4px;
+}
+
+LevelBar fill, .levelbar fill {
+  background: linear-gradient(90deg, @neon_red_dim, @neon_red, @neon_red_glow);
+  border-radius: 3px;
+  box-shadow: 0 0 10px @neon_red_glow;
+}
+
+/* Peak indicator */
+LevelBar peak, .levelbar peak {
+  background-color: @amber;
+  box-shadow: 0 0 12px @amber;
+  animation: peak-hold 1s ease-out;
+}
+
+@keyframes peak-hold {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ===== COMBOBOX / DROPDOWNS ===== */
+ComboBox, .combobox {
+  background-color: @bg_panel;
+  border: 1px solid @border_norm;
+}
+
+ComboBox:hover, .combobox:hover {
+  border-color: @neon_red;
+}
+
+ComboBox button, .combobox button {
+  background-color: @bg_raised;
+  border-left: 1px solid @border_norm;
+}
+
+ComboBox button:hover, .combobox button:hover {
+  background-color: @neon_red_dim;
+  border-color: @neon_red;
+  color: @neon_red_glow;
+}
+
+/* ===== NOTEBOOK / TABS ===== */
+Notebook, .notebook {
+  background-color: @bg_dark;
+}
+
+Notebook tab, .notebook tab {
+  background-color: @bg_panel;
+  border: 1px solid @border_dim;
+  border-bottom: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  color: @text_secondary;
+  padding: 8px 16px;
+  margin-right: 2px;
+  text-transform: uppercase;
+  font-size: 0.8em;
+}
+
+Notebook tab:checked, .notebook tab:checked {
+  background-color: @bg_raised;
+  border-color: @neon_red;
+  border-bottom: 2px solid @neon_red;
+  color: @neon_red_glow;
+  box-shadow: 0 -2px 12px @neon_red_dim;
+}
+
+/* ===== FRAMES / GROUP BOXES ===== */
+Frame, .frame {
+  border: 1px solid @border_norm;
+  border-radius: 6px;
+  background-color: @bg_panel;
+}
+
+Frame > Label, .frame > label {
+  color: @neon_red;
+  font-weight: bold;
+  padding: 6px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85em;
+}
+
+/* ===== SEPARATORS ===== */
+Separator, .separator {
+  background-color: @pcb_trace;
+}
+
+/* ===== SCROLLBARS ===== */
+Scrollbar, .scrollbar {
+  background-color: @bg_dark;
+}
+
+Scrollbar slider, .scrollbar slider {
+  background-color: @border_norm;
+  border-radius: 4px;
+  min-width: 10px;
+  min-height: 10px;
+  margin: 2px;
+  border: 1px solid @border_dim;
+}
+
+Scrollbar slider:hover, .scrollbar slider:hover {
+  background-color: @neon_red;
+  border-color: @neon_red_glow;
+  box-shadow: 0 0 12px @neon_red_glow;
+}
+
+/* ===== MENUS ===== */
+Menu, .menu {
+  background-color: @bg_panel;
+  border: 1px solid @border_bright;
+  box-shadow: 0 4px 30px @neon_red_dim;
+}
+
+MenuItem, .menuitem {
+  padding: 8px 20px;
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 0.3px;
+}
+
+MenuItem:hover, .menuitem:hover {
+  background-color: @neon_red_dim;
+  color: @neon_red_glow;
+}
+
+/* ===== TOOLTIPS ===== */
+Tooltip, .tooltip {
+  background-color: @bg_panel;
+  border: 1px solid @neon_red;
+  color: @text_primary;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 0 20px @neon_red_dim;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ===== ENTRY FIELDS ===== */
+Entry, .entry {
+  background-color: @bg_panel;
+  border: 1px solid @border_norm;
+  color: @text_primary;
+  padding: 6px 10px;
+  font-family: "Audiowide", monospace;
+}
+
+Entry:focus, .entry:focus {
+  border-color: @neon_red;
+  box-shadow: 0 0 12px @neon_red_dim;
+}
+
+/* ===== SPIN BUTTONS ===== */
+SpinButton, .spinbutton {
+  background-color: @bg_panel;
+  border: 1px solid @border_norm;
+}
+
+SpinButton:focus, .spinbutton:focus {
+  border-color: @neon_red;
+  box-shadow: 0 0 12px @neon_red_dim;
+}
+
+SpinButton button, .spinbutton button {
+  background-color: @bg_raised;
+  border-left: 1px solid @border_dim;
+}
+
+/* ===== SWITCHES ===== */
+Switch, .switch {
+  background-color: @bg_panel;
+  border: 1px solid @border_dim;
+  border-radius: 16px;
+  min-width: 48px;
+  min-height: 28px;
+}
+
+Switch:checked, .switch:checked {
+  background-color: @neon_red;
+  border-color: @neon_red_glow;
+  box-shadow: 0 0 16px @neon_red_glow;
+}
+
+Switch slider, .switch slider {
+  background-color: @text_primary;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  min-width: 22px;
+  min-height: 22px;
+}
+
+/* ===== DIALOGS ===== */
+Dialog, .dialog {
+  background-color: @bg_dark;
+  border: 2px solid @neon_red;
+  border-radius: 8px;
+  box-shadow: 0 0 40px @neon_red_dim;
+}
+
+/* ===== PROGRESS BARS ===== */
+ProgressBar, .progressbar {
+  background-color: @bg_panel;
+  border: 1px solid @border_dim;
+  border-radius: 4px;
+}
+
+ProgressBar progress, .progressbar progress {
+  background: linear-gradient(90deg, @neon_red_dim, @neon_red, @neon_red_glow);
+  border-radius: 3px;
+  box-shadow: 0 0 10px @neon_red_glow;
+}
+
+/* ===== PCB TRACE DECORATIONS ===== */
+.pcb-corner {
+  position: relative;
+}
+
+.pcb-corner::before {
+  content: "";
+  position: absolute;
+  width: 16px; height: 16px;
+  border: 2px solid @pcb_trace;
+  pointer-events: none;
+}
+
+.pcb-corner.tl::before { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+.pcb-corner.tr::before { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
+.pcb-corner.bl::before { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+.pcb-corner.br::before { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+
+/* Via points */
+.pcb-via {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background-color: @pcb_via;
+  box-shadow: 0 0 6px @pcb_via;
+  animation: via-pulse 2s ease-in-out infinite;
+}
+
+@keyframes via-pulse {
+  0%, 100% { box-shadow: 0 0 3px @pcb_via; transform: scale(1); }
+  50% { box-shadow: 0 0 10px @pcb_via, 0 0 16px @pcb_via; transform: scale(1.2); }
+}
+
+/* ===== ANIMATIONS ===== */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none; animation: none; }
+}
+
+/* Screen transitions */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+.screen-fade-in { animation: fade-in 150ms ease-out forwards; }
+.screen-fade-out { animation: fade-out 100ms ease-in forwards; }
+
+/* ===== GIGBOX SPECIFIC ===== */
+.gigbox-branding {
+  color: @neon_red;
+  font-family: "Audiowide", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.gigbox-version {
+  color: @text_muted;
+  font-size: 0.7em;
+}

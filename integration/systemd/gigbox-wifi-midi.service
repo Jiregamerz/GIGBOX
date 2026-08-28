@@ -1,0 +1,32 @@
+[Unit]
+Description=GIGBOX WiFi UDP MIDI Receiver
+Documentation=https://github.com/spooki-instruments/gigbox
+After=network-online.target sound.target
+Wants=network-online.target
+Before=zynthian.service
+
+[Service]
+Type=simple
+User=zynthian
+Group=zynthian
+WorkingDirectory=/zynthian/zynthian-ui
+ExecStart=/usr/bin/python3 /usr/local/bin/gigbox-wifi-midi.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gigbox-wifi-midi
+
+# Resource limits
+LimitNOFILE=65536
+Nice=-5
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log /tmp
+
+[Install]
+WantedBy=multi-user.target

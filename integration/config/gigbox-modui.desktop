@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MOD-UI
+GenericName=MOD Pedalboard
+Comment=Launch MOD pedalboard interface locally
+Exec=/usr/local/bin/gigbox-modui-launcher
+Icon=gigbox-modui
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+StartupNotify=true
+Keywords=mod;pedalboard;effects;audio;

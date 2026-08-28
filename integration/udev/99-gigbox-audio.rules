@@ -1,0 +1,59 @@
+# GIGBOX USB Audio Udev Rules - Stable Device Naming
+# SPOOKI INSTRUMENTS - GIGBOX
+# Creates stable symlinks for ALSA device identification
+# PCM DAC (I2S) -> /dev/snd/by-id/pcm-dac
+# USB DAC -> /dev/snd/by-id/usb-dac
+
+# ============================================================================
+# PCM DAC (I2S) - Stable Identification
+# ============================================================================
+
+# Match I2S DAC sound cards by driver/name
+# Common I2S DAC drivers: snd_soc_hifiberry_dac, snd_soc_iqaudio_dac, snd_soc_rpi_dac, snd_bcm2835_i2s
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="sndrpihifiberry*", SYMLINK+="snd/by-id/pcm-dac", TAG+="systemd", ENV{SYSTEMD_WANTS}+="alsa-restore.service"
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="sndrpiiqaudio*", SYMLINK+="snd/by-id/pcm-dac", TAG+="systemd", ENV{SYSTEMD_WANTS}+="alsa-restore.service"
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="sndrpidaemon*", SYMLINK+="snd/by-id/pcm-dac", TAG+="systemd", ENV{SYSTEMD_WANTS}+="alsa-restore.service"
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="bcm2835-i2s*", SYMLINK+="snd/by-id/pcm-dac", TAG+="systemd", ENV{SYSTEMD_WANTS}+="alsa-restore.service"
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="snd_soc_*dac*", SYMLINK+="snd/by-id/pcm-dac", TAG+="systemd", ENV{SYSTEMD_WANTS}+="alsa-restore.service"
+
+# Generic: Any card with I2S in name
+SUBSYSTEM=="sound", KERNEL=="card*", ENV{ID_VENDOR_ID}=="", ENV{ID_MODEL_ID}=="", ATTR{id}=="*i2s*", SYMLINK+="snd/by-id/pcm-dac"
+
+# ============================================================================
+# USB DAC - Stable Identification
+# ============================================================================
+
+# USB Audio Class 1.0/2.0 devices
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="USB*", SYMLINK+="snd/by-id/usb-dac", TAG+="systemd", ENV{SYSTEMD_WANTS}+="alsa-restore.service"
+
+# Match by USB vendor/product if needed (add specific rules for known DACs)
+# Example for specific DAC:
+# SUBSYSTEM=="sound", KERNEL=="card*", ATTRS{idVendor}=="xxxx", ATTRS{idProduct}=="xxxx", SYMLINK+="snd/by-id/usb-dac"
+
+# ============================================================================
+# PERMISSIONS
+# ============================================================================
+
+# Grant access to audio group
+SUBSYSTEM=="sound", GROUP="audio", MODE="0660"
+
+# ============================================================================
+# HOTPLUG NOTIFICATION
+# ============================================================================
+
+# Notify Zynthian of audio device changes
+ACTION=="add|remove", SUBSYSTEM=="sound", KERNEL=="card*", RUN+="/usr/local/bin/gigbox-audio-hotplug.sh %k %a"
+
+# ============================================================================
+# POWER MANAGEMENT - Disable autosuspend for audio
+# ============================================================================
+
+ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="01", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="01", ATTR{power/autosuspend}="-1"
+
+# ============================================================================
+# MICROPHONE PERMISSIONS
+# ============================================================================
+
+# USB microphones (capture devices)
+ACTION=="add", SUBSYSTEM=="sound", KERNEL=="pcmC*D*c", GROUP="audio", MODE="0660"

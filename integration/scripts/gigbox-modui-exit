@@ -1,0 +1,15 @@
+#!/bin/bash
+# GIGBOX MOD-UI EXIT TRIGGER
+# SPOOKI INSTRUMENTS - GIGBOX
+# Called by Zynthian input handler on encoder/nav long press
+# Creates trigger file that launcher monitors
+
+EXIT_TRIGGER="/tmp/gigbox_modui_exit_request"
+
+# Create the trigger file
+touch "$EXIT_TRIGGER"
+
+# Also try to send signal to any running launcher
+pkill -SIGTERM -f "gigbox-modui-launcher" 2>/dev/null || true
+
+echo "MOD-UI exit requested"

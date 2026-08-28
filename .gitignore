@@ -1,0 +1,33 @@
+# Disk images - never commit
+*.img
+*.img.xz
+*.img.xz.*
+
+# Build directories
+extracted/
+work/
+final/
+final-package/
+processed-assets/
+processed-assets.backup/
+backups/
+mnt/
+
+# Kernel/boot artifacts
+kernel*.img
+*.dtb
+
+# OS/build artifacts
+*.log
+*.tmp
+*.swp
+
+# IDE/editor
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+
+# Temporary files
+*.bak
+*.orig

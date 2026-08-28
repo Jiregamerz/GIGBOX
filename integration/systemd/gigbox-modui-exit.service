@@ -1,0 +1,31 @@
+[Unit]
+Description=GIGBOX MOD-UI Exit Monitor
+Documentation=https://github.com/spooki-instruments/gigbox
+After=zynthian.service
+Requires=zynthian.service
+
+[Service]
+Type=simple
+User=zynthian
+Group=zynthian
+WorkingDirectory=/zynthian/zynthian-ui
+ExecStart=/usr/bin/python3 /usr/local/bin/gigbox-modui-exit-daemon.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gigbox-modui-exit
+
+# Resource limits
+LimitNOFILE=65536
+Nice=-5
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/tmp /var/log
+
+[Install]
+WantedBy=multi-user.target
