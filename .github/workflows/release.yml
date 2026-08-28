@@ -415,16 +415,31 @@ jobs:
             FAILED=1
           fi
           
-          # Validate Python syntax
-          echo "Validating Python syntax..."
+          # Validate Python syntax INSIDE chroot (where Zynthian modules are available)
+          echo "Validating Python syntax (in chroot)..."
+          sudo mount --bind /dev "$WORK_DIR/root/dev"
+          sudo mount --bind /proc "$WORK_DIR/root/proc"
+          sudo mount --bind /sys "$WORK_DIR/root/sys"
+          sudo mount --bind /run "$WORK_DIR/root/run" 2>/dev/null || true
+          
+          PYTHON_SYNTAX_FAILED=0
           for pyfile in "$WORK_DIR/root/zynthian/zynthian-ui/zyngui"/*.py; do
-            if python3 -m py_compile "$pyfile" 2>/dev/null; then
+            if sudo chroot "$WORK_DIR/root" python3 -m py_compile "$pyfile" 2>/dev/null; then
               echo "  ✓ $(basename "$pyfile")"
             else
               echo "  ✗ $(basename "$pyfile") - SYNTAX ERROR"
-              FAILED=1
+              PYTHON_SYNTAX_FAILED=1
             fi
           done
+          
+          sudo umount "$WORK_DIR/root/run" 2>/dev/null || true
+          sudo umount "$WORK_DIR/root/sys"
+          sudo umount "$WORK_DIR/root/proc"
+          sudo umount "$WORK_DIR/root/dev"
+          
+          if [ $PYTHON_SYNTAX_FAILED -ne 0 ]; then
+            FAILED=1
+          fi
           
           if [ $FAILED -ne 0 ]; then
             echo "::error::Critical files missing or syntax errors"
