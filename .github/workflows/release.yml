@@ -424,7 +424,9 @@ jobs:
           
           PYTHON_SYNTAX_FAILED=0
           for pyfile in "$WORK_DIR/root/zynthian/zynthian-ui/zyngui"/*.py; do
-            if sudo chroot "$WORK_DIR/root" python3 -m py_compile "$pyfile" 2>/dev/null; then
+            # Convert host path to chroot-relative path
+            chroot_path="${pyfile#$WORK_DIR/root}"
+            if sudo chroot "$WORK_DIR/root" python3 -m py_compile "$chroot_path" 2>/dev/null; then
               echo "  ✓ $(basename "$pyfile")"
             else
               echo "  ✗ $(basename "$pyfile") - SYNTAX ERROR"
