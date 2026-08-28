@@ -78,6 +78,21 @@ layout = {
 # ------------------------------------------------------------------------------
 custom_switch_ui_actions = []
 custom_switch_midi_events = []
+GIGBOX_BUTTON_ACTIONS = [
+    "GIGBOX_TRANSPOSE_UP",
+    "GIGBOX_TRANSPOSE_DOWN",
+    "GIGBOX_OCTAVE_UP",
+    "GIGBOX_OCTAVE_DOWN",
+    "GIGBOX_SUSTAIN",
+    "TOGGLE_PLAY",
+    "MAIN_MENU",
+    "SCREEN_MIXER",
+    "SCREEN_ZS3",
+    "TOGGLE_ALT_MODE",
+]
+GIGBOX_SWITCH_ACTIONS = [
+    "UP", "DOWN", "LEFT", "RIGHT", "SELECT",
+] + GIGBOX_BUTTON_ACTIONS
 zynswitch_bold_us = 1000 * 300
 zynswitch_long_us = 1000 * 2000
 zynswitch_bold_seconds = zynswitch_bold_us / 1000000
@@ -160,6 +175,37 @@ def config_custom_switches():
                 except: pass
         custom_switch_ui_actions.append(cuias)
         custom_switch_midi_events.append(midi_event)
+
+    # The physical GIGBOX controls must not inherit a previous Webconf profile.
+    if wiring_layout == "GIGBOX":
+        while len(custom_switch_ui_actions) < len(GIGBOX_SWITCH_ACTIONS):
+            custom_switch_ui_actions.append(None)
+            custom_switch_midi_events.append(None)
+        for i, action in enumerate(GIGBOX_SWITCH_ACTIONS):
+            custom_switch_ui_actions[i] = {
+                'P': '', 'S': action, 'B': action, 'L': action,
+                'AP': '', 'AS': '', 'AB': '', 'AL': ''
+            }
+        custom_switch_ui_actions[4]['B'] = 'GIGBOX_MODUI_EXIT'
+        custom_switch_ui_actions[4]['L'] = 'GIGBOX_MODUI_EXIT'
+
+
+def configure_gigbox_wiring():
+    """Expose GIGBOX GPIOs to lib_zyncore before it is initialized."""
+    if wiring_layout != "GIGBOX":
+        return
+
+    pins = [-1] * 36
+    pin_by_switch = {
+        3: 13,
+        4: 17, 5: 27, 6: 22, 7: 23, 8: 24,
+        9: 16, 10: 7, 11: 8, 12: 9, 13: 25,
+        14: 26, 15: 12, 16: 4, 17: 10, 18: 11,
+    }
+    for switch, pin in pin_by_switch.items():
+        pins[switch] = pin
+    os.environ['ZYNTHIAN_WIRING_LAYOUT'] = 'GIGBOX'
+    os.environ['ZYNTHIAN_WIRING_SWITCHES'] = ','.join(str(pin) for pin in pins)
 
 def config_zynpot2switch():
     global zynpot2switch, num_zynpots
@@ -422,6 +468,7 @@ gigbox_boot_animation = get_env_int('GIGBOX_BOOT_ANIMATION', 1)
 # X11 Related Stuff
 # ------------------------------------------------------------------------------
 if "zynthian_main.py" in sys.argv[0]:
+    configure_gigbox_wiring()
     import tkinter
     from PIL import Image, ImageTk
 

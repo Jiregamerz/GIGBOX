@@ -36,6 +36,7 @@ def main():
     print("1. GIGBOX MODULE SYNTAX")
     results.append(test("gigbox_wiring.py syntax", lambda: compile(open('/zynthian/zynthian-ui/zyngui/gigbox_wiring.py').read(), 'gigbox_wiring.py', 'exec')))
     results.append(test("gigbox_navigation.py syntax", lambda: compile(open('/zynthian/zynthian-ui/zyngui/gigbox_navigation.py').read(), 'gigbox_navigation.py', 'exec')))
+    results.append(test("gigbox_runtime.py syntax", lambda: compile(open('/zynthian/zynthian-ui/zyngui/gigbox_runtime.py').read(), 'gigbox_runtime.py', 'exec')))
     results.append(test("gigbox_transitions.py syntax", lambda: compile(open('/zynthian/zynthian-ui/zyngui/gigbox_transitions.py').read(), 'gigbox_transitions.py', 'exec')))
     results.append(test("zynthian_gui_config.py syntax", lambda: compile(open('/zynthian/zynthian-ui/zyngui/zynthian_gui_config.py').read(), 'zynthian_gui_config.py', 'exec')))
     results.append(test("gigbox-modui-exit-daemon.py syntax", lambda: compile(open('/usr/local/bin/gigbox-modui-exit-daemon.py').read(), 'gigbox-modui-exit-daemon.py', 'exec')))
@@ -67,6 +68,16 @@ def main():
     results.append(test("gigbox_wiring", lambda: __import__('gigbox_wiring')))
     results.append(test("gigbox_navigation", lambda: __import__('gigbox_navigation')))
     results.append(test("gigbox_transitions", lambda: __import__('gigbox_transitions')))
+    results.append(test("gigbox_runtime", lambda: __import__('gigbox_runtime')))
+
+    def test_runtime_action_hook():
+        with open('/zynthian/zynthian-ui/zyngui/zynthian_gui.py') as f:
+            content = f.read()
+        assert 'import gigbox_runtime' in content, "Runtime action import missing"
+        assert 'gigbox_runtime.install(self)' in content, "Runtime action hook missing"
+        print("    Live Zynthian runtime hook: verified")
+        return True
+    results.append(test("zynthian_gui.py GIGBOX hook", test_runtime_action_hook))
 
     print()
     print("5. LIB_ZYNCORE INITIALIZATION ORDER")
@@ -115,6 +126,17 @@ def main():
         nav_count = 5
         btn_count = len(data['gigbox_gpio_map']['buttons'])
         assert btn_count == 10, f"Expected 10 buttons, got {btn_count}"
+        expected = [
+            "TRANSPOSE_UP", "TRANSPOSE_DOWN", "OCTAVE_UP", "OCTAVE_DOWN",
+            "SUSTAIN", "PLAY_PAUSE", "MENU", "MIX", "ZS3", "ALT",
+        ]
+        actual = [button['function'] for button in data['gigbox_gpio_map']['buttons']]
+        assert actual == expected, f"Button mapping mismatch: {actual}"
+        print("    Confirmed ten-button mapping: verified")
+        with open('/zynthian/zynthian-ui/zyngui/zynthian_gui_config.py') as f:
+            config = f.read()
+        assert 'GIGBOX_SWITCH_ACTIONS' in config, "Live GIGBOX switch actions missing"
+        assert 'configure_gigbox_wiring()' in config, "GPIO environment hook missing"
         total = encoder_count + nav_count + btn_count
         assert total == 18, f"Expected 18 GPIO inputs, got {total}"
         print(f"    Total GPIO inputs: {total} (verified)")
@@ -141,12 +163,35 @@ def main():
     def test_audio_config():
         with open('/etc/asound.conf') as f:
             content = f.read()
+        with open('/etc/gigbox/asound-auto.conf') as f:
+            content += f.read()
         assert 'gigbox_pcm_dac_hw' in content, "PCM DAC hw reference missing"
         assert 'gigbox_usb_dac_hw' in content, "USB DAC hw reference missing"
-        assert 'by-id' in content or 'card "PCM"' in content, "Stable device naming missing"
+        assert 'asound-auto.conf' in content or 'card 0' in content, "Stable device naming missing"
         print("    Stable ALSA device naming: verified")
         return True
     results.append(test("asound.conf stable naming", test_audio_config))
+
+    def test_audio_fallback_config():
+        with open('/etc/asound.conf') as f:
+            content = f.read()
+        assert '</etc/gigbox/asound-auto.conf' in content, "Generated ALSA include missing"
+        with open('/etc/gigbox/asound-auto.conf') as f:
+            generated = f.read()
+        for name in ('gigbox_pcm_dac_hw', 'gigbox_usb_dac_hw', 'pcm.!default'):
+            assert name in generated, f"ALSA fallback entry missing: {name}"
+        print("    Generated ALSA fallback map: verified")
+        return True
+    results.append(test("asound.conf fallback include", test_audio_fallback_config))
+
+    def test_audio_init_service():
+        with open('/etc/systemd/system/gigbox-audio-init.service') as f:
+            content = f.read()
+        assert 'gigbox-audio-hotplug.sh boot boot' in content
+        assert 'Before=zynthian.service' in content
+        print("    Audio card init ordering: verified")
+        return True
+    results.append(test("gigbox-audio-init.service", test_audio_init_service))
 
     def test_udev_rules():
         with open('/etc/udev/rules.d/99-gigbox-audio.rules') as f:

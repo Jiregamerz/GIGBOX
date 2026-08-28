@@ -34,16 +34,16 @@
 | **Navigation** | LEFT | 22 | 15 | Up | Low | 5ms | LEFT | LEFT_LONG | **None** | SAFE |
 | **Navigation** | RIGHT | 23 | 16 | Up | Low | 5ms | RIGHT | RIGHT_LONG | **None** | SAFE |
 | **Navigation** | CLICK | 24 | 18 | Up | Low | 5ms | SELECT | BACK/CANCEL | **None** | SAFE |
-| **Button 1** | Signal | 16 | 36 | Up | Low | 5ms | LAYER_UP | LAYER_MENU | **None** | SAFE, MIDI CC 80 |
-| **Button 2** | Signal | 7 | 26 | Up | Low | 5ms | LAYER_DOWN | LAYER_MENU | SPI0_CE1 | Acceptable - no SPI0 on header |
-| **Button 3** | Signal | 8 | 24 | Up | Low | 5ms | CHAIN_LEFT | CHAIN_MENU | SPI0_CE0 | Acceptable - no SPI0 on header |
-| **Button 4** | Signal | 9 | 21 | Up | Low | 5ms | CHAIN_RIGHT | CHAIN_MENU | SPI0_MISO | Acceptable - no SPI0 on header |
-| **Button 5** | Signal | 25 | 22 | Up | Low | 5ms | SNAPSHOT_UP | SNAPSHOT_MENU | **None** | SAFE, MIDI CC 84 |
-| **Button 6** | Signal | 26 | 37 | Up | Low | 5ms | SNAPSHOT_DOWN | SNAPSHOT_MENU | **None** | SAFE, MIDI CC 85 |
-| **Button 7** | Signal | 12 | 32 | Up | Low | 5ms | MIXER | AUDIO_MENU | PWM0 | Acceptable - USB DAC used |
-| **Button 8** | Signal | 4 | 7 | Up | Low | 5ms | MOD_UI | MOD_UI_MENU | I2C1_SDA alt | Acceptable - no I2C1 devices |
-| **Button 9** | Signal | 10 | 19 | Up | Low | 5ms | QUICK_EDIT | ENGINE_MENU | SPI0_MOSI | Acceptable - no SPI0 on header |
-| **Button 10** | Signal | 11 | 23 | Up | Low | 5ms | PANIC | SYSTEM_MENU | SPI0_SCLK | Acceptable - no SPI0 on header |
+| **Button 1** | Signal | 16 | 36 | Up | Low | 5ms | TRANSPOSE_UP | TRANSPOSE_UP | **None** | +1 semitone |
+| **Button 2** | Signal | 7 | 26 | Up | Low | 5ms | TRANSPOSE_DOWN | TRANSPOSE_DOWN | SPI0_CE1 | -1 semitone |
+| **Button 3** | Signal | 8 | 24 | Up | Low | 5ms | OCTAVE_UP | OCTAVE_UP | SPI0_CE0 | +1 octave |
+| **Button 4** | Signal | 9 | 21 | Up | Low | 5ms | OCTAVE_DOWN | OCTAVE_DOWN | SPI0_MISO | -1 octave |
+| **Button 5** | Signal | 25 | 22 | Up | Low | 5ms | SUSTAIN | SUSTAIN | **None** | Toggle MIDI CC 64 |
+| **Button 6** | Signal | 26 | 37 | Up | Low | 5ms | PLAY_PAUSE | PLAY_PAUSE | **None** | Toggle transport |
+| **Button 7** | Signal | 12 | 32 | Up | Low | 5ms | MENU | MENU | PWM0 | Main menu |
+| **Button 8** | Signal | 4 | 7 | Up | Low | 5ms | MIX | MIX | I2C1_SDA alt | Mixer screen |
+| **Button 9** | Signal | 10 | 19 | Up | Low | 5ms | ZS3 | ZS3 | SPI0_MOSI | ZS3 screen |
+| **Button 10** | Signal | 11 | 23 | Up | Low | 5ms | ALT | ALT | SPI0_SCLK | Toggle ALT |
 
 ---
 
@@ -111,7 +111,7 @@ Other side of each button → GND
 |---|---|---|---|
 | 13 | Encoder Push | PWM1 | **Acceptable** - USB DAC used, no PWM audio |
 | 12 | Button 7 | PWM0 | **Acceptable** - USB DAC used, no PWM audio |
-| 7 | Button 10 | SPI0_CE1 | **Acceptable** - No SPI0 devices on 40-pin header (boot SPI is separate) |
+| 7 | Button 2 | SPI0_CE1 | **Acceptable** - No SPI0 devices on 40-pin header (boot SPI is separate) |
 | 8 | Button 3 | SPI0_CE0 | **Acceptable** - No SPI0 devices on 40-pin header |
 | 9 | Button 4 | SPI0_MISO | **Acceptable** - No SPI0 devices on 40-pin header |
 | 10 | Button 9 | SPI0_MOSI | **Acceptable** - No SPI0 devices on 40-pin header |
@@ -153,22 +153,21 @@ Other side of each button → GND
 - **CLICK**: SELECT / OK (short press)
 - **CLICK long press (500ms)**: BACK / CANCEL (exits MOD-UI via daemon)
 
-### 10 Tactile Buttons (Default Mapping - User Configurable)
-| Button | Default Function | Long Press | MIDI CC |
-|--------|-----------------|------------|---------|
-| 1 (GPIO 16) | LAYER_UP | LAYER_MENU | 80 |
-| 2 (GPIO 7) | LAYER_DOWN | LAYER_MENU | 81 |
-| 3 (GPIO 8) | CHAIN_LEFT | CHAIN_MENU | 82 |
-| 4 (GPIO 9) | CHAIN_RIGHT | CHAIN_MENU | 83 |
-| 5 (GPIO 25) | SNAPSHOT_UP | SNAPSHOT_MENU | 84 |
-| 6 (GPIO 26) | SNAPSHOT_DOWN | SNAPSHOT_MENU | 85 |
-| 7 (GPIO 12) | MIXER | AUDIO_MENU | 86 |
-| 8 (GPIO 4) | MOD_UI (launch) | MOD_UI_MENU | 87 |
-| 9 (GPIO 10) | QUICK_EDIT | ENGINE_MENU | 88 |
-| 10 (GPIO 11) | PANIC (All Notes Off) | SYSTEM_MENU | 89 |
+### 10 Tactile Buttons (Default Mapping)
+| Button | Default Function | Long Press |
+|--------|-----------------|------------|
+| 1 (GPIO 16) | TRANSPOSE_UP (+1 semitone) | TRANSPOSE_UP |
+| 2 (GPIO 7) | TRANSPOSE_DOWN (-1 semitone) | TRANSPOSE_DOWN |
+| 3 (GPIO 8) | OCTAVE_UP (+12 semitones) | OCTAVE_UP |
+| 4 (GPIO 9) | OCTAVE_DOWN (-12 semitones) | OCTAVE_DOWN |
+| 5 (GPIO 25) | SUSTAIN (toggle CC 64) | SUSTAIN |
+| 6 (GPIO 26) | PLAY_PAUSE | PLAY_PAUSE |
+| 7 (GPIO 12) | MENU | MENU |
+| 8 (GPIO 4) | MIX | MIX |
+| 9 (GPIO 10) | ZS3 | ZS3 |
+| 10 (GPIO 11) | ALT | ALT |
 
-All buttons support **short press** and **long press (500ms)** with independent actions.
-MIDI CC mappings are configurable via Zynthian UI.
+All buttons use the same action for short, bold, and long release. The actions are defined by the GIGBOX profile.
 
 ---
 
@@ -196,7 +195,7 @@ MIDI CC mappings are configurable via Zynthian UI.
 - [ ] Touchscreen fully functional (tap, drag, multi-touch)
 - [ ] On-screen directional arrows **removed** from UI
 - [ ] Remaining on-screen controls **reflowed** cleanly
-- [ ] MOD-UI launches from Button 8
+- [ ] MOD-UI launches from the visible on-screen MOD UI control
 - [ ] MOD-UI exits via Encoder long press OR Nav CLICK long press
 - [ ] USB DAC enumerates and works
 - [ ] PCM DAC (I2S) works on GPIO 18,19,20,21
@@ -225,6 +224,7 @@ To modify button mappings: Use Zynthian webconf → Hardware → Wiring Layout �
 |---------|------|--------|---------|
 | 1.0 | 2026-08-28 | GIGBOX Team | Initial |
 | 2.0 | 2026-08-28 | GIGBOX Team | **I2S-Safe GPIO reassignment** - Buttons 2,3,4,9 moved off GPIO 18,19,20,21 |
+| 2.1 | 2026-08-28 | GIGBOX Team | Confirmed physical button actions and live Zynthian integration |
 
 ---
 

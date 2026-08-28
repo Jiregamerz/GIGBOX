@@ -42,7 +42,7 @@ SUBSYSTEM=="sound", GROUP="audio", MODE="0660"
 # ============================================================================
 
 # Notify Zynthian of audio device changes
-ACTION=="add|remove", SUBSYSTEM=="sound", KERNEL=="card*", RUN+="/usr/local/bin/gigbox-audio-hotplug.sh %k %a"
+ACTION=="add|remove", SUBSYSTEM=="sound", KERNEL=="card*", RUN+="/usr/local/bin/gigbox-audio-hotplug.sh %k $env{ACTION}"
 
 # ============================================================================
 # POWER MANAGEMENT - Disable autosuspend for audio

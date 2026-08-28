@@ -1,0 +1,43 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1339 >>
+stream
+BT /F1 10 Tf 50 750 Td (GIGBOX GPIO WIRING PLAN) Tj 0 -16 Td (Raspberry Pi 5 | BCM numbering | active-low inputs) Tj 0 -16 Td () Tj 0 -16 Td (SAFETY) Tj 0 -16 Td (- Connect the other side of every control to GND.) Tj 0 -16 Td (- Use internal pull-ups; never apply 5 V to GPIO.) Tj 0 -16 Td (- GPIO 18, 19, 20, 21 are reserved for I2S audio.) Tj 0 -16 Td (- Power off the Pi before wiring and verify with a meter.) Tj 0 -16 Td () Tj 0 -16 Td (MAIN ENCODER) Tj 0 -16 Td (Signal             BCM     Physical pin) Tj 0 -16 Td (Channel A           5           29) Tj 0 -16 Td (Channel B           6           31) Tj 0 -16 Td (Push switch        13           33) Tj 0 -16 Td (Common             GND      any ground pin) Tj 0 -16 Td () Tj 0 -16 Td (FIVE-WAY NAVIGATION) Tj 0 -16 Td (Signal             BCM     Physical pin) Tj 0 -16 Td (UP                 17           11) Tj 0 -16 Td (DOWN               27           13) Tj 0 -16 Td (LEFT               22           15) Tj 0 -16 Td (RIGHT              23           16) Tj 0 -16 Td (CLICK              24           18) Tj 0 -16 Td (Common             GND      any ground pin) Tj 0 -16 Td () Tj 0 -16 Td (GROUND PINS) Tj 0 -16 Td (Physical pins 6, 9, 14, 20, 25, 30, 34, or 39.) Tj 0 -16 Td (All inputs use internal pull-ups and press when connected to ground.) Tj 0 -16 Td (Page 1 of 2) Tj ET q Q
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 1697 >>
+stream
+BT /F1 10 Tf 50 750 Td (GIGBOX BUTTON MAP) Tj 0 -16 Td (Button       Function                         BCM     Physical pin) Tj 0 -16 Td (1            Transpose up \(+1 semitone\)       16          36) Tj 0 -16 Td (2            Transpose down \(-1 semitone\)      7          26) Tj 0 -16 Td (3            Octave up \(+12 semitones\)         8          24) Tj 0 -16 Td (4            Octave down \(-12 semitones\)       9          21) Tj 0 -16 Td (5            Sustain on/off, MIDI CC 64       25          22) Tj 0 -16 Td (6            Play/pause                       26          37) Tj 0 -16 Td (7            Main menu                        12          32) Tj 0 -16 Td (8            Mixer                             4           7) Tj 0 -16 Td (9            ZS3                              10          19) Tj 0 -16 Td (10           ALT                              11          23) Tj 0 -16 Td () Tj 0 -16 Td (AUDIO RESERVATION - DO NOT USE FOR CONTROLS) Tj 0 -16 Td (I2S clock         BCM 18    Physical pin 12) Tj 0 -16 Td (I2S frame sync    BCM 19    Physical pin 35) Tj 0 -16 Td (I2S data in       BCM 20    Physical pin 38) Tj 0 -16 Td (I2S data out      BCM 21    Physical pin 40) Tj 0 -16 Td () Tj 0 -16 Td (BRING-UP CHECKLIST) Tj 0 -16 Td ([ ] Pi powered off during wiring) Tj 0 -16 Td ([ ] All control commons connected to GND) Tj 0 -16 Td ([ ] No control wire connected to GPIO 18-21) Tj 0 -16 Td ([ ] Encoder A/B are not swapped) Tj 0 -16 Td ([ ] Every input reads released before pressing) Tj 0 -16 Td ([ ] Test one control at a time with Zynthian control test) Tj 0 -16 Td () Tj 0 -16 Td (See GIGBOX_GPIO_WIRING_PLAN.md for the complete reference.) Tj 0 -16 Td (Page 2 of 2) Tj ET q Q
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000001638 00000 n 
+0000001764 00000 n 
+0000003513 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3583
+%%EOF

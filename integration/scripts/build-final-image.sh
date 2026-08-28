@@ -174,6 +174,7 @@ echo -e "${YELLOW}[6/10] Running validation checks...${NC}"
 CHECKS=(
     "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/zynthian_gui_config.py"
     "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_wiring.py"
+    "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_runtime.py"
     "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_transitions.py"
     "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_navigation.py"
     "$WORK_DIR/root/usr/local/bin/gigbox-modui-launcher"
@@ -181,6 +182,8 @@ CHECKS=(
     "$WORK_DIR/root/usr/local/bin/gigbox-wifi-midi.py"
     "$WORK_DIR/root/etc/systemd/system/gigbox-wifi-midi.service"
     "$WORK_DIR/root/etc/asound.conf"
+    "$WORK_DIR/root/etc/gigbox/asound-auto.conf"
+    "$WORK_DIR/root/etc/systemd/system/gigbox-audio-init.service"
     "$WORK_DIR/root/etc/udev/rules.d/99-gigbox-audio.rules"
     "$WORK_DIR/root/zynthian/zynthian-ui/img/zynthian_gui_loading.gif"
     "$WORK_DIR/root/zynthian/zynthian-ui/img/clean/zynthian_logo_boot.png"
@@ -192,20 +195,44 @@ for check in "${CHECKS[@]}"; do
         echo -e "  ${GREEN}✓${NC} $(basename "$check")"
     else
         echo -e "  ${RED}✗${NC} $(basename "$check") - MISSING!"
+        VALIDATION_FAILED=1
     fi
 done
 
 # Check soundfonts
 SF2_COUNT=$(ls "$WORK_DIR/root/zynthian/zynthian-data/soundfonts/GIGBOX"/*.sf2 2>/dev/null | wc -l)
-echo -e "  ${GREEN}✓${NC} Soundfonts: $SF2_COUNT files"
+if [ "$SF2_COUNT" -gt 0 ]; then
+    echo -e "  ${GREEN}✓${NC} Soundfonts: $SF2_COUNT files"
+else
+    echo -e "  ${RED}✗${NC} Soundfonts: none found"
+    VALIDATION_FAILED=1
+fi
 
-# Validate Python syntax
-echo -e "${YELLOW}Validating Python syntax...${NC}"
-for pyfile in "$WORK_DIR/root/zynthian/zynthian-ui/zyngui"/*.py; do
-    python3 -m py_compile "$pyfile" 2>/dev/null && echo -e "  ${GREEN}✓${NC} $(basename "$pyfile")" || echo -e "  ${RED}✗${NC} $(basename "$pyfile") - SYNTAX ERROR"
+# Validate only the files changed by GIGBOX. Stock Zynthian modules are validated
+# by the target-rootfs validator inside the image's own Python environment.
+echo -e "${YELLOW}Validating GIGBOX Python syntax...${NC}"
+PYFILES=(
+    "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/zynthian_gui_config.py"
+    "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/zynthian_gui.py"
+    "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_wiring.py"
+    "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_runtime.py"
+    "$WORK_DIR/root/zynthian/zynthian-ui/zyngui/gigbox_navigation.py"
+    "$WORK_DIR/root/usr/local/bin/gigbox-modui-exit-daemon.py"
+)
+for pyfile in "${PYFILES[@]}"; do
+    if python3 -m py_compile "$pyfile" 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} $(basename "$pyfile")"
+    else
+        echo -e "  ${RED}✗${NC} $(basename "$pyfile") - SYNTAX ERROR"
+        VALIDATION_FAILED=1
+    fi
 done
 
 echo -e "${GREEN}Validation complete${NC}"
+if [ "${VALIDATION_FAILED:-0}" -ne 0 ]; then
+    echo -e "${RED}Validation failed; image assembly stopped${NC}"
+    exit 1
+fi
 
 echo -e "${YELLOW}[7/10] Unmounting partitions...${NC}"
 umount "$WORK_DIR/boot"
@@ -246,7 +273,7 @@ GIGBOX is a modified Zynthian OS with custom hardware integration, theming, and 
 ## Features
 - Dark neon red theme (near black, PCB trace design)
 - Custom boot animation & branding
-- MOD-UI launches manually (Button 8), exits via encoder long press
+- MOD-UI launches manually from the on-screen MOD UI control, exits via encoder long press
 - WiFi UDP MIDI receiver (auto-start)
 - USB DAC auto-detection
 - 42 GIGBOX soundfonts included
@@ -290,21 +317,21 @@ cat > "$FINAL_DIR/GIGBOX_BUILD_REPORT.md" << 'REPORTEOF'
 - 18 GPIO inputs configured (3 encoder + 5 nav + 10 buttons)
 - No potentiometer, no softpot, no ADC
 - Validated against Pi 5 GPIO reservations
-- Conflicts documented (I2S vs Buttons 2,3,4,9)
+- I2S GPIOs 18,19,20,21 reserved and unused by controls
 
 ### 3. MOD-UI Integration (Complete)
-- Manual launch only (Button 8 or menu)
+- Manual launch only (on-screen MOD UI control)
 - Exit via: on-screen button, encoder long press, nav click long press
 - No auto-start at boot
 - Chromium kiosk mode on local display
 
 ### 4. WiFi UDP MIDI (Complete)
 - systemd service: gigbox-wifi-midi.service
-- Listens on UDP port 5004
+- Listens on UDP port 4210
 - Injects MIDI into Zynthian via zyncore/rtmidi
 
 ### 5. Audio Configuration (Complete)
-- asound.conf: PCM DAC (card 0) + USB DAC (card 1)
+- asound.conf: generated PCM/USB DAC card selection
 - udev rules: Auto-detection, permissions
 - modprobe.d: Card ordering (I2S=0, USB=1, HDMI=10)
 
@@ -334,11 +361,9 @@ cat > "$FINAL_DIR/GIGBOX_BUILD_REPORT.md" << 'REPORTEOF'
 - Soundfont count: 42
 
 ## Known Limitations
-1. Buttons 2,3,4,9 conflict with I2S audio - use USB DAC or reassign
-2. Button 8 conflicts with I2C1 - avoid if I2C devices present
-3. Button 10 conflicts with SPI0_CE1
-4. QEMU testing limited (no Pi 5 emulation)
-5. Hardware validation required on real Pi 5
+1. SPI/I2C/PWM alternate functions used by some controls must remain disabled
+2. QEMU testing limited (no Pi 5 emulation)
+3. Hardware validation required on real Pi 5
 
 ## Deliverables
 - gigbox-final.img (raw)

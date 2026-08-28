@@ -13,6 +13,17 @@ import subprocess
 import threading
 import logging
 
+# lib_zyncore reads the wiring map when it is initialized in this process.
+_switch_pins = [-1] * 36
+for _index, _pin in {
+    3: 13, 4: 17, 5: 27, 6: 22, 7: 23, 8: 24,
+    9: 16, 10: 7, 11: 8, 12: 9, 13: 25,
+    14: 26, 15: 12, 16: 4, 17: 10, 18: 11,
+}.items():
+    _switch_pins[_index] = _pin
+os.environ.setdefault('ZYNTHIAN_WIRING_LAYOUT', 'GIGBOX')
+os.environ.setdefault('ZYNTHIAN_WIRING_SWITCHES', ','.join(map(str, _switch_pins)))
+
 # Add Zynthian paths
 sys.path.insert(0, '/zynthian/zynthian-ui')
 sys.path.insert(0, '/zynthian/zynthian-ui/zyngui')
@@ -60,7 +71,7 @@ class ModUIExitDaemon:
         self.nav_click_pressed = False
         
         # Switch indices (from gigbox_wiring.py)
-        self.ENCODER_SW_IDX = 0
+        self.ENCODER_SW_IDX = 3
         self.NAV_CLICK_IDX = 8
         
     def init_zyncore(self):
@@ -95,8 +106,32 @@ class ModUIExitDaemon:
         try:
             return self.lib_zyncore.get_switches()
         except Exception as e:
-            logger.debug(f"Error reading switches: {e}")
-            return {}
+            logger.debug(f"get_switches unavailable: {e}")
+            return {
+                index: self.read_switch_state(index)
+                for index in (self.ENCODER_SW_IDX, self.NAV_CLICK_IDX)
+            }
+
+    def switch_value(self, switches, index, default=1):
+        """Read either dict-like or sequence-like zyncore switch results."""
+        try:
+            if hasattr(switches, 'get'):
+                return switches.get(index, default)
+            return switches[index]
+        except (IndexError, KeyError, TypeError):
+            return default
+
+    def refresh_modui_state(self):
+        try:
+            result = subprocess.run(
+                ['pgrep', '-f', f'chromium.*{MOD_UI_URL}'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=1,
+            )
+            self.mod_ui_active = result.returncode == 0
+        except Exception:
+            self.mod_ui_active = False
     
     def check_long_press(self):
         """Check for long press on encoder switch or nav click"""
@@ -104,9 +139,10 @@ class ModUIExitDaemon:
         
         # Read switches
         switches = self.read_all_switches()
+        self.refresh_modui_state()
         
-        # Check encoder switch (index 0)
-        encoder_state = switches.get(self.ENCODER_SW_IDX, 1)  # 1 = released (active low)
+        # Check encoder switch (index 3)
+        encoder_state = self.switch_value(switches, self.ENCODER_SW_IDX)
         if encoder_state == 0:  # Pressed
             if not self.encoder_pressed:
                 self.encoder_pressed = True
@@ -120,7 +156,7 @@ class ModUIExitDaemon:
             self.encoder_pressed = False
         
         # Check nav click (index 8)
-        nav_click_state = switches.get(self.NAV_CLICK_IDX, 1)
+        nav_click_state = self.switch_value(switches, self.NAV_CLICK_IDX)
         if nav_click_state == 0:  # Pressed
             if not self.nav_click_pressed:
                 self.nav_click_pressed = True

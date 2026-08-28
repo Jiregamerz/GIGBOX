@@ -80,34 +80,23 @@ BUTTON_ACTIVE_LOW = True      # Active low
 ENCODER_STEPS_PER_DETENT = 4  # Standard quadrature encoder
 
 # ==============================================================================
-# Function Mappings (Configurable via UI)
+# Function Mappings (GIGBOX default; configurable via UI)
 # ==============================================================================
 BUTTON_FUNCTIONS = {
-    0: "LAYER_UP",      # Button 1 (GPIO 16)
-    1: "LAYER_DOWN",    # Button 2 (GPIO 7)
-    2: "CHAIN_LEFT",    # Button 3 (GPIO 8)
-    3: "CHAIN_RIGHT",   # Button 4 (GPIO 9)
-    4: "SNAPSHOT_UP",   # Button 5 (GPIO 25)
-    5: "SNAPSHOT_DOWN", # Button 6 (GPIO 26)
-    6: "MIXER",         # Button 7 (GPIO 12)
-    7: "MOD_UI",        # Button 8 (GPIO 4) - Launch MOD-UI
-    8: "QUICK_EDIT",    # Button 9 (GPIO 10)
-    9: "PANIC",         # Button 10 (GPIO 11) - All notes off
+    0: "TRANSPOSE_UP",    # Button 1 (GPIO 16)
+    1: "TRANSPOSE_DOWN",  # Button 2 (GPIO 7)
+    2: "OCTAVE_UP",       # Button 3 (GPIO 8)
+    3: "OCTAVE_DOWN",     # Button 4 (GPIO 9)
+    4: "SUSTAIN",          # Button 5 (GPIO 25)
+    5: "PLAY_PAUSE",      # Button 6 (GPIO 26)
+    6: "MENU",             # Button 7 (GPIO 12)
+    7: "MIX",              # Button 8 (GPIO 4)
+    8: "ZS3",              # Button 9 (GPIO 10)
+    9: "ALT",              # Button 10 (GPIO 11)
 }
 
-# MIDI CC mappings for buttons (future expansion via UI)
-BUTTON_MIDI_CC = {
-    0: {"cc": 80, "channel": 0},
-    1: {"cc": 81, "channel": 0},
-    2: {"cc": 82, "channel": 0},
-    3: {"cc": 83, "channel": 0},
-    4: {"cc": 84, "channel": 0},
-    5: {"cc": 85, "channel": 0},
-    6: {"cc": 86, "channel": 0},
-    7: {"cc": 87, "channel": 0},
-    8: {"cc": 88, "channel": 0},
-    9: {"cc": 89, "channel": 0},
-}
+# Button actions are UI actions. MIDI bindings remain user-configurable in Webconf.
+BUTTON_MIDI_CC = {}
 
 ENCODER_MIDI = {
     "cc": 16,
@@ -134,7 +123,7 @@ LAST_ZYNSWITCH_INDEX = 18
 
 # Switch index mapping (matches Zynthian's expectation)
 SWITCH_INDEX_MAP = {
-    "encoder_sw": 0,
+    "encoder_sw": 3,
     "nav_up": 4,
     "nav_down": 5,
     "nav_left": 6,
@@ -160,16 +149,16 @@ CUSTOM_SWITCH_ACTIONS = {
     "nav_right": {"short": "RIGHT", "bold": "RIGHT_BOLD", "long": "RIGHT_LONG"},
     "nav_click": {"short": "SELECT", "bold": "SELECT_BOLD", "long": "BACK"},
     "encoder_sw": {"short": "SELECT", "bold": "SELECT_BOLD", "long": "BACK"},
-    "button_1": {"short": "LAYER_UP", "long": "LAYER_MENU"},
-    "button_2": {"short": "LAYER_DOWN", "long": "LAYER_MENU"},
-    "button_3": {"short": "CHAIN_LEFT", "long": "CHAIN_MENU"},
-    "button_4": {"short": "CHAIN_RIGHT", "long": "CHAIN_MENU"},
-    "button_5": {"short": "SNAPSHOT_UP", "long": "SNAPSHOT_MENU"},
-    "button_6": {"short": "SNAPSHOT_DOWN", "long": "SNAPSHOT_MENU"},
-    "button_7": {"short": "MIXER", "long": "AUDIO_MENU"},
-    "button_8": {"short": "MOD_UI", "long": "MOD_UI_MENU"},
-    "button_9": {"short": "QUICK_EDIT", "long": "ENGINE_MENU"},
-    "button_10": {"short": "PANIC", "long": "SYSTEM_MENU"},
+    "button_1": {"short": "GIGBOX_TRANSPOSE_UP"},
+    "button_2": {"short": "GIGBOX_TRANSPOSE_DOWN"},
+    "button_3": {"short": "GIGBOX_OCTAVE_UP"},
+    "button_4": {"short": "GIGBOX_OCTAVE_DOWN"},
+    "button_5": {"short": "GIGBOX_SUSTAIN"},
+    "button_6": {"short": "TOGGLE_PLAY"},
+    "button_7": {"short": "MAIN_MENU"},
+    "button_8": {"short": "SCREEN_MIXER"},
+    "button_9": {"short": "SCREEN_ZS3"},
+    "button_10": {"short": "TOGGLE_ALT_MODE"},
 }
 
 def get_gpio_map():
@@ -306,16 +295,16 @@ def get_validated_gpio_table():
         {"control": "Navigation", "signal": "LEFT", "bcm": 22, "physical": 15, "pull": "up", "active": "low", "debounce_ms": 5, "short": "LEFT", "long": "LEFT_LONG", "long_ms": 500, "conflict": "None", "notes": "SAFE"},
         {"control": "Navigation", "signal": "RIGHT", "bcm": 23, "physical": 16, "pull": "up", "active": "low", "debounce_ms": 5, "short": "RIGHT", "long": "RIGHT_LONG", "long_ms": 500, "conflict": "None", "notes": "SAFE"},
         {"control": "Navigation", "signal": "CLICK", "bcm": 24, "physical": 18, "pull": "up", "active": "low", "debounce_ms": 5, "short": "SELECT", "long": "BACK", "long_ms": 500, "conflict": "None", "notes": "SAFE"},
-        {"control": "Button", "signal": "1", "bcm": 16, "physical": 36, "pull": "up", "active": "low", "debounce_ms": 5, "short": "LAYER_UP", "long": "LAYER_MENU", "long_ms": 500, "midi_cc": 80, "conflict": "None", "notes": "SAFE"},
-        {"control": "Button", "signal": "2", "bcm": 7, "physical": 26, "pull": "up", "active": "low", "debounce_ms": 5, "short": "LAYER_DOWN", "long": "LAYER_MENU", "long_ms": 500, "midi_cc": 81, "conflict": "SPI0_CE1", "notes": "Acceptable - no SPI0 on 40-pin header"},
-        {"control": "Button", "signal": "3", "bcm": 8, "physical": 24, "pull": "up", "active": "low", "debounce_ms": 5, "short": "CHAIN_LEFT", "long": "CHAIN_MENU", "long_ms": 500, "midi_cc": 82, "conflict": "SPI0_CE0", "notes": "Acceptable - no SPI0 on 40-pin header"},
-        {"control": "Button", "signal": "4", "bcm": 9, "physical": 21, "pull": "up", "active": "low", "debounce_ms": 5, "short": "CHAIN_RIGHT", "long": "CHAIN_MENU", "long_ms": 500, "midi_cc": 83, "conflict": "SPI0_MISO", "notes": "Acceptable - no SPI0 on 40-pin header"},
-        {"control": "Button", "signal": "5", "bcm": 25, "physical": 22, "pull": "up", "active": "low", "debounce_ms": 5, "short": "SNAPSHOT_UP", "long": "SNAPSHOT_MENU", "long_ms": 500, "midi_cc": 84, "conflict": "None", "notes": "SAFE"},
-        {"control": "Button", "signal": "6", "bcm": 26, "physical": 37, "pull": "up", "active": "low", "debounce_ms": 5, "short": "SNAPSHOT_DOWN", "long": "SNAPSHOT_MENU", "long_ms": 500, "midi_cc": 85, "conflict": "None", "notes": "SAFE"},
-        {"control": "Button", "signal": "7", "bcm": 12, "physical": 32, "pull": "up", "active": "low", "debounce_ms": 5, "short": "MIXER", "long": "AUDIO_MENU", "long_ms": 500, "midi_cc": 86, "conflict": "PWM0", "notes": "Acceptable - USB DAC used, no PWM audio"},
-        {"control": "Button", "signal": "8", "bcm": 4, "physical": 7, "pull": "up", "active": "low", "debounce_ms": 5, "short": "MOD_UI", "long": "MOD_UI_MENU", "long_ms": 500, "midi_cc": 87, "conflict": "I2C1_SDA alt", "notes": "Acceptable - no I2C1 devices on header"},
-        {"control": "Button", "signal": "9", "bcm": 10, "physical": 19, "pull": "up", "active": "low", "debounce_ms": 5, "short": "QUICK_EDIT", "long": "ENGINE_MENU", "long_ms": 500, "midi_cc": 88, "conflict": "SPI0_MOSI", "notes": "Acceptable - no SPI0 on 40-pin header"},
-        {"control": "Button", "signal": "10", "bcm": 11, "physical": 23, "pull": "up", "active": "low", "debounce_ms": 5, "short": "PANIC", "long": "SYSTEM_MENU", "long_ms": 500, "midi_cc": 89, "conflict": "SPI0_SCLK", "notes": "Acceptable - no SPI0 on 40-pin header"},
+        {"control": "Button", "signal": "1", "bcm": 16, "physical": 36, "pull": "up", "active": "low", "debounce_ms": 5, "short": "TRANSPOSE_UP", "long": "TRANSPOSE_UP", "long_ms": 500, "conflict": "None", "notes": "+1 semitone"},
+        {"control": "Button", "signal": "2", "bcm": 7, "physical": 26, "pull": "up", "active": "low", "debounce_ms": 5, "short": "TRANSPOSE_DOWN", "long": "TRANSPOSE_DOWN", "long_ms": 500, "conflict": "SPI0_CE1", "notes": "-1 semitone"},
+        {"control": "Button", "signal": "3", "bcm": 8, "physical": 24, "pull": "up", "active": "low", "debounce_ms": 5, "short": "OCTAVE_UP", "long": "OCTAVE_UP", "long_ms": 500, "conflict": "SPI0_CE0", "notes": "+12 semitones"},
+        {"control": "Button", "signal": "4", "bcm": 9, "physical": 21, "pull": "up", "active": "low", "debounce_ms": 5, "short": "OCTAVE_DOWN", "long": "OCTAVE_DOWN", "long_ms": 500, "conflict": "SPI0_MISO", "notes": "-12 semitones"},
+        {"control": "Button", "signal": "5", "bcm": 25, "physical": 22, "pull": "up", "active": "low", "debounce_ms": 5, "short": "SUSTAIN", "long": "SUSTAIN", "long_ms": 500, "conflict": "None", "notes": "Toggle MIDI CC 64"},
+        {"control": "Button", "signal": "6", "bcm": 26, "physical": 37, "pull": "up", "active": "low", "debounce_ms": 5, "short": "PLAY_PAUSE", "long": "PLAY_PAUSE", "long_ms": 500, "conflict": "None", "notes": "Toggle transport"},
+        {"control": "Button", "signal": "7", "bcm": 12, "physical": 32, "pull": "up", "active": "low", "debounce_ms": 5, "short": "MENU", "long": "MENU", "long_ms": 500, "conflict": "PWM0", "notes": "Main menu"},
+        {"control": "Button", "signal": "8", "bcm": 4, "physical": 7, "pull": "up", "active": "low", "debounce_ms": 5, "short": "MIX", "long": "MIX", "long_ms": 500, "conflict": "I2C1_SDA alt", "notes": "Mixer screen"},
+        {"control": "Button", "signal": "9", "bcm": 10, "physical": 19, "pull": "up", "active": "low", "debounce_ms": 5, "short": "ZS3", "long": "ZS3", "long_ms": 500, "conflict": "SPI0_MOSI", "notes": "ZS3 screen"},
+        {"control": "Button", "signal": "10", "bcm": 11, "physical": 23, "pull": "up", "active": "low", "debounce_ms": 5, "short": "ALT", "long": "ALT", "long_ms": 500, "conflict": "SPI0_SCLK", "notes": "Toggle ALT"},
     ]
 
 if __name__ == "__main__":

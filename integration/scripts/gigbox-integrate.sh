@@ -41,6 +41,7 @@ fi
 echo -e "${YELLOW}[1/12] Backing up original files...${NC}"
 mkdir -p /zynthian/gigbox-backup
 cp "$ZYNGUI_DIR/zynthian_gui_config.py" /zynthian/gigbox-backup/zynthian_gui_config.py.orig
+cp "$ZYNGUI_DIR/zynthian_gui.py" /zynthian/gigbox-backup/zynthian_gui.py.orig
 cp -r "$ICONS_DIR" /zynthian/gigbox-backup/icons.orig 2>/dev/null || true
 cp -r "$IMG_DIR" /zynthian/gigbox-backup/img.orig 2>/dev/null || true
 cp -r "$CLEAN_IMG_DIR" /zynthian/gigbox-backup/clean.orig 2>/dev/null || true
@@ -77,7 +78,35 @@ echo -e "${GREEN}$sf2_count soundfonts installed to $SOUNDFONTS_DIR/GIGBOX/${NC}
 echo -e "${YELLOW}[6/12] Installing hardware configuration (GPIO, encoder, buttons)...${NC}"
 cp "$INTEGRATION_DIR/config/gigbox_wiring.py" "$ZYNGUI_DIR/gigbox_wiring.py"
 cp "$INTEGRATION_DIR/config/gigbox_gpio_map.json" "$CONFIG_DIR/gigbox_gpio_map.json"
+cp "$INTEGRATION_DIR/config/gigbox_runtime.py" "$ZYNGUI_DIR/gigbox_runtime.py"
 echo -e "${GREEN}Hardware config installed${NC}"
+
+echo -e "${YELLOW}Installing live Zynthian action hook...${NC}"
+python3 - "$ZYNGUI_DIR/zynthian_gui_config.py" "$ZYNGUI_DIR/zynthian_gui.py" <<'PY'
+import sys
+from pathlib import Path
+
+config_path, gui_path = map(Path, sys.argv[1:])
+config = config_path.read_text()
+if "configure_gigbox_wiring()" not in config:
+    raise SystemExit("GIGBOX config hook is missing")
+
+gui = gui_path.read_text()
+import_marker = "from zyngui import zynthian_gui_keybinding"
+if "import gigbox_runtime" not in gui:
+    if import_marker not in gui:
+        raise SystemExit("Zynthian GUI import marker not found")
+    gui = gui.replace(import_marker, import_marker + "\nimport gigbox_runtime", 1)
+
+hook_marker = "        # Initialize OSC\n"
+hook = "        # Install GIGBOX actions before UI threads start.\n        gigbox_runtime.install(self)\n\n"
+if "gigbox_runtime.install(self)" not in gui:
+    if hook_marker not in gui:
+        raise SystemExit("Zynthian GUI screen-init marker not found")
+    gui = gui.replace(hook_marker, hook + hook_marker, 1)
+gui_path.write_text(gui)
+PY
+echo -e "${GREEN}Live Zynthian action hook installed${NC}"
 
 echo -e "${YELLOW}[7/12] Installing MOD-UI launcher (manual launch, with exit button)...${NC}"
 cp "$INTEGRATION_DIR/scripts/gigbox-modui-launcher" /usr/local/bin/gigbox-modui-launcher
@@ -106,10 +135,17 @@ echo -e "${GREEN}WiFi UDP MIDI service installed and enabled (port 4210)${NC}"
 
 echo -e "${YELLOW}[10/12] Installing USB DAC / ALSA audio configuration (stable device IDs)...${NC}"
 cp "$INTEGRATION_DIR/config/asound.conf" /etc/asound.conf
+mkdir -p /etc/gigbox
+cp "$INTEGRATION_DIR/config/asound-auto.conf" /etc/gigbox/asound-auto.conf
 cp "$INTEGRATION_DIR/udev/99-gigbox-audio.rules" /etc/udev/rules.d/99-gigbox-audio.rules
 cp "$INTEGRATION_DIR/config/gigbox-audio.conf" /etc/modprobe.d/gigbox-audio.conf
 cp "$INTEGRATION_DIR/scripts/gigbox-audio-hotplug.sh" /usr/local/bin/gigbox-audio-hotplug.sh
 chmod +x /usr/local/bin/gigbox-audio-hotplug.sh
+cp "$INTEGRATION_DIR/systemd/gigbox-audio-init.service" /etc/systemd/system/gigbox-audio-init.service
+mkdir -p /etc/systemd/system/zynthian.service.d
+cp "$INTEGRATION_DIR/systemd/zynthian-audio-order.conf" /etc/systemd/system/zynthian.service.d/10-gigbox-audio.conf
+systemctl daemon-reload
+systemctl enable gigbox-audio-init.service
 udevadm control --reload-rules
 udevadm trigger
 echo -e "${GREEN}USB DAC/ALSA config installed (stable device identification)${NC}"
@@ -142,6 +178,7 @@ chown -R zynthian:zynthian "$ZYNGUI_DIR" 2>/dev/null || true
 chown -R zynthian:zynthian "$ICONS_DIR" 2>/dev/null || true
 chown -R zynthian:zynthian "$IMG_DIR" 2>/dev/null || true
 chown -R zynthian:zynthian "$SOUNDFONTS_DIR/GIGBOX" 2>/dev/null || true
+chown zynthian:zynthian "$ZYNGUI_DIR/gigbox_runtime.py" 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}========================================${NC}"

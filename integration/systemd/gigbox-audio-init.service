@@ -1,0 +1,12 @@
+[Unit]
+Description=GIGBOX audio card selection
+Before=zynthian.service zynthian-ui.service
+After=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gigbox-audio-hotplug.sh boot boot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

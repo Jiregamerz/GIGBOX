@@ -55,8 +55,7 @@ See **GIGBOX_GPIO_MAP.md** for complete wiring diagram with:
 - Active levels
 - Debounce times
 - Short/long press actions
-- MIDI CC mappings
-- Conflict warnings (I2S vs Buttons 2,3,4,9)
+- I2S reservation and GPIO conflict warnings
 
 ### Quick Reference
 | Function | BCM | Physical Pin |
@@ -70,15 +69,15 @@ See **GIGBOX_GPIO_MAP.md** for complete wiring diagram with:
 | Nav RIGHT | 23 | 16 |
 | Nav CLICK | 24 | 18 |
 | Button 1 | 16 | 36 |
-| Button 2 | 19 | 35 |
-| Button 3 | 20 | 38 |
-| Button 4 | 21 | 40 |
+| Button 2 | 7 | 26 |
+| Button 3 | 8 | 24 |
+| Button 4 | 9 | 21 |
 | Button 5 | 25 | 22 |
 | Button 6 | 26 | 37 |
 | Button 7 | 12 | 32 |
 | Button 8 | 4 | 7 |
-| Button 9 | 18 | 12 |
-| Button 10 | 7 | 26 |
+| Button 9 | 10 | 19 |
+| Button 10 | 11 | 23 |
 
 **All inputs: Active LOW, internal pull-up, software debounce**
 
@@ -153,18 +152,18 @@ sync
 ### 10 Tactile Buttons (Default Mapping)
 | Button | Short Press | Long Press | MIDI CC |
 |--------|-------------|------------|---------|
-| 1 | LAYER_UP | LAYER_MENU | 80 |
-| 2 | LAYER_DOWN | LAYER_MENU | 81 |
-| 3 | CHAIN_LEFT | CHAIN_MENU | 82 |
-| 4 | CHAIN_RIGHT | CHAIN_MENU | 83 |
-| 5 | SNAPSHOT_UP | SNAPSHOT_MENU | 84 |
-| 6 | SNAPSHOT_DOWN | SNAPSHOT_MENU | 85 |
-| 7 | MIXER | AUDIO_MENU | 86 |
-| 8 | **MOD_UI** | MOD_UI_MENU | 87 |
-| 9 | QUICK_EDIT | ENGINE_MENU | 88 |
-| 10 | PANIC | SYSTEM_MENU | 89 |
+| 1 | TRANSPOSE_UP | TRANSPOSE_UP | — |
+| 2 | TRANSPOSE_DOWN | TRANSPOSE_DOWN | — |
+| 3 | OCTAVE_UP | OCTAVE_UP | — |
+| 4 | OCTAVE_DOWN | OCTAVE_DOWN | — |
+| 5 | SUSTAIN | SUSTAIN | — |
+| 6 | PLAY_PAUSE | PLAY_PAUSE | — |
+| 7 | MENU | MENU | — |
+| 8 | MIX | MIX | — |
+| 9 | ZS3 | ZS3 | — |
+| 10 | ALT | ALT | — |
 
-**All buttons user-configurable via Zynthian Webconf → Hardware → Wiring**
+GIGBOX installs these actions as the default wiring profile.
 
 ### Touchscreen
 - Fully functional for all interactions
@@ -177,7 +176,7 @@ sync
 ## MOD-UI OPERATION
 
 ### Launching MOD-UI
-1. Press **Button 8** (or select from System menu)
+1. Press the on-screen **MOD UI** control (physical buttons do not launch MOD-UI)
 2. Chromium launches in kiosk mode at `http://localhost:8888`
 3. On-screen **EXIT button** appears top-right (red ✕)
 4. Use touchscreen for pedalboard editing
@@ -200,8 +199,8 @@ sync
 
 ### PCM DAC (Main L/R Output)
 - I2S interface (GPIO 18,19,20,21)
-- **CONFLICT**: Buttons 2,3,4,9 use same GPIOs
-- **Solution**: Use USB DAC as primary, or reassign buttons
+- These GPIOs are reserved and are not assigned to GIGBOX controls.
+- USB DAC remains available for headphones and microphone.
 
 ### USB DAC (Headphones + Mic)
 - Auto-detected via udev
@@ -221,7 +220,7 @@ sync
 
 ## WIFI UDP MIDI
 
-- **Port**: 5004 (UDP)
+- **Port**: 4210 (UDP)
 - **Auto-starts** on boot (systemd service)
 - **Formats**: Raw MIDI, RTP-MIDI, AppleMIDI
 - **Injection**: Direct to Zynthian MIDI system
@@ -231,7 +230,7 @@ sync
 ```bash
 # From another device on same network
 # Send MIDI note on channel 1
-echo -ne '\x90\x3c\x7f' | nc -u -w1 <gigbox-ip> 5004
+echo -ne '\x90\x3c\x7f' | nc -u -w1 <gigbox-ip> 4210
 ```
 
 ---
@@ -308,9 +307,9 @@ All core Zynthian features work unchanged:
 
 | Limitation | Impact | Workaround |
 |------------|--------|------------|
-| Buttons 2,3,4,9 conflict with I2S | PCM DAC may not work | Use USB DAC as primary |
+| GPIO 18-21 are reserved for I2S | Controls must not use these pins | The current map leaves them free |
 | Button 8 (GPIO 4) = I2C1_SDA | I2C devices may conflict | Reassign Button 8 if using I2C |
-| Button 10 (GPIO 7) = SPI0_CE1 | SPI CE1 unavailable | Acceptable if not using SPI CE1 |
+| Button 2 (GPIO 7) = SPI0_CE1 | SPI CE1 unavailable | Acceptable if not using SPI CE1 |
 | No ADC | No potentiometer/SoftPot | Use encoder for volume |
 | QEMU testing limited | No Pi 5 emulation | Test on real hardware |
 | Encoder Push = PWM1 | PWM audio conflict | Use USB DAC |

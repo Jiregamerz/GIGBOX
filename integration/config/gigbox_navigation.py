@@ -64,6 +64,7 @@ class GigboxNavigation:
             # Colors
             'bg': self.BG_DARK,
             'panel_bg': self.BG_PANEL,
+            'bg_highlight': '#0d0d0d',
             'accent': self.NEON_RED,
             'accent_glow': self.NEON_RED_GLOW,
             'accent_dim': self.NEON_RED_DIM,
@@ -192,12 +193,10 @@ class GigboxNavigation:
         │  Top Bar (status, CPU, etc.)                            │
         ├─────────────┬───────────────────────────┬───────────────┤
         │             │                           │  Side Controls│
-        │  Main List  │    Parameter/Edit Area    │  [MIXER]      │
-        │             │                           │  [MOD UI]     │
-        │             │                           │  [QUICK EDIT] │
+         │  Main List  │    Parameter/Edit Area    │  [MOD UI]     │
         ├─────────────┴───────────────────────────┴───────────────┤
         │  Bottom Controls (reflowed - no arrows)                 │
-        │  [BACK]    [SELECT]    [SNAPSHOT]   [LAYER]   [PANIC]  │
+         │ [F1] [F2] [F3] [F4] [METRONOME] [PAD STEP] [REC] [PLAY] │
         └─────────────────────────────────────────────────────────┘
         """
         config = self.layout_config
@@ -229,12 +228,14 @@ class GigboxNavigation:
         
         # Define reflowed buttons (NO directional arrows!)
         buttons = [
-            # (name, text, command, style_variant)
-            ('back', 'BACK', on_back or self._default_back, 'secondary'),
-            ('select', 'SELECT', on_select or self._default_select, 'primary'),
-            ('snapshot', 'SNAPSHOT', lambda: self._trigger_action(zyngui_instance, 'SNAPSHOT_MENU'), 'secondary'),
-            ('layer', 'LAYER', lambda: self._trigger_action(zyngui_instance, 'LAYER_MENU'), 'secondary'),
-            ('panic', 'PANIC', lambda: self._trigger_action(zyngui_instance, 'PANIC'), 'destructive'),
+            ('f1', 'F1', lambda: self._trigger_action(zyngui_instance, 'F1'), 'secondary'),
+            ('f2', 'F2', lambda: self._trigger_action(zyngui_instance, 'F2'), 'secondary'),
+            ('f3', 'F3', lambda: self._trigger_action(zyngui_instance, 'F3'), 'secondary'),
+            ('f4', 'F4', lambda: self._trigger_action(zyngui_instance, 'F4'), 'secondary'),
+            ('metronome', 'METRONOME', lambda: self._trigger_action(zyngui_instance, 'TEMPO'), 'secondary'),
+            ('padstep', 'PAD STEP', lambda: self._trigger_action(zyngui_instance, 'SCREEN_ZYNPAD'), 'secondary'),
+            ('record', 'REC', lambda: self._trigger_action(zyngui_instance, 'TOGGLE_RECORD'), 'secondary'),
+            ('play', 'PLAY/PAUSE', lambda: self._trigger_action(zyngui_instance, 'TOGGLE_PLAY'), 'primary'),
         ]
         
         # Calculate button width to fill space evenly
@@ -334,10 +335,10 @@ class GigboxNavigation:
     
     def _trigger_action(self, zyngui_instance, action: str):
         """Trigger a Zynthian UI action"""
-        if hasattr(zyngui_instance, 'trigger_action'):
+        if hasattr(zyngui_instance, 'callable_ui_action'):
+            zyngui_instance.callable_ui_action(action)
+        elif hasattr(zyngui_instance, 'trigger_action'):
             zyngui_instance.trigger_action(action)
-        elif hasattr(zyngui_instance, 'zyngui') and hasattr(zyngui_instance.zyngui, 'trigger_action'):
-            zyngui_instance.zyngui.trigger_action(action)
         else:
             logger.warning(f"Could not trigger action: {action}")
     
@@ -363,7 +364,7 @@ class GigboxNavigation:
             self.control_buttons[name].configure(text=text)
     
     def add_side_controls(self, zyngui_instance, controls: List[Tuple[str, Callable]]):
-        """Add vertical side control buttons (MIXER, MOD UI, QUICK EDIT, etc.)"""
+        """Add the vertical MOD-UI control button."""
         config = self.layout_config
         
         # Create side panel on right side
@@ -422,16 +423,13 @@ def integrate_gigbox_navigation(zyngui_instance):
     
     # Create reflowed bottom controls
     def on_select():
-        if hasattr(zyngui_instance, 'trigger_action'):
-            zyngui_instance.trigger_action('SELECT')
-    
+        nav._trigger_action(zyngui_instance, 'SELECT')
+
     def on_back():
-        if hasattr(zyngui_instance, 'trigger_action'):
-            zyngui_instance.trigger_action('BACK')
-    
+        nav._trigger_action(zyngui_instance, 'BACK')
+
     def on_mod_ui():
-        if hasattr(zyngui_instance, 'trigger_action'):
-            zyngui_instance.trigger_action('MOD_UI')
+        nav._trigger_action(zyngui_instance, 'GIGBOX_MODUI')
     
     nav.create_reflowed_controls(
         zyngui_instance,
@@ -441,11 +439,9 @@ def integrate_gigbox_navigation(zyngui_instance):
         on_mod_ui=on_mod_ui
     )
     
-    # Add side controls
+    # MOD-UI is intentionally the only extra physical-equivalent side control.
     nav.add_side_controls(zyngui_instance, [
-        ('MIXER', lambda: zyngui_instance.trigger_action('MIXER') if hasattr(zyngui_instance, 'trigger_action') else None),
         ('MOD UI', on_mod_ui),
-        ('QUICK EDIT', lambda: zyngui_instance.trigger_action('QUICK_EDIT') if hasattr(zyngui_instance, 'trigger_action') else None),
     ])
     
     # Store reference
