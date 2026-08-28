@@ -219,8 +219,15 @@ jobs:
       # ---------------------------------------------------------
       - name: Apply GIGBOX integration
         run: |
-          # Copy integration files to rootfs
-          sudo cp -r "$INTEGRATION_DIR" "$WORK_DIR/root/tmp/gigbox-integration"
+          # Bind the checkout into the chroot instead of copying its large
+          # SoundFont tree into the image a second time.
+          INTEGRATION_MOUNT="$WORK_DIR/root/tmp/gigbox-integration"
+          sudo mkdir -p "$INTEGRATION_MOUNT"
+          sudo mount --bind "$INTEGRATION_DIR" "$INTEGRATION_MOUNT"
+          cleanup_integration_mount() {
+            sudo umount "$INTEGRATION_MOUNT" 2>/dev/null || true
+          }
+          trap cleanup_integration_mount EXIT
           
           # Create integration runner script
           sudo tee "$WORK_DIR/root/tmp/run-integration.sh" > /dev/null << 'INTEOF'
@@ -242,6 +249,8 @@ jobs:
           sudo chroot "$WORK_DIR/root" /tmp/run-integration.sh
           
           # Cleanup chroot
+          cleanup_integration_mount
+          trap - EXIT
           sudo umount "$WORK_DIR/root/run" 2>/dev/null || true
           sudo umount "$WORK_DIR/root/sys"
           sudo umount "$WORK_DIR/root/proc"
