@@ -114,15 +114,12 @@ jobs:
         run: |
           set -e
           VERSION="${{ inputs.zynthian_version }}"
-          
+
           if [ "$VERSION" = "last-stable" ] || [ "$VERSION" = "latest" ]; then
-            # Try to get latest stable from Zynthian releases
-            echo "Fetching latest Zynthian stable release..."
-            RELEASE_URL=$(curl -s https://api.github.com/repos/zynthian/zynthian-os/releases/latest | jq -r '.assets[] | select(.name | endswith(".img.xz")) | .browser_download_url' | head -1)
-            if [ -z "$RELEASE_URL" ] || [ "$RELEASE_URL" = "null" ]; then
-              # Fallback to known stable URL pattern
-              RELEASE_URL="https://github.com/zynthian/zynthian-os/releases/download/last-stable/zynthianos-last-stable.img.xz"
-            fi
+            # Zynthian hosts stable SD images on its OS download server,
+            # not as GitHub Release assets.
+            echo "Fetching latest Zynthian stable image..."
+            RELEASE_URL="https://os.zynthian.org/zynthianos-last-stable.img.xz"
           else
             RELEASE_URL="https://github.com/zynthian/zynthian-os/releases/download/${VERSION}/zynthianos-${VERSION}.img.xz"
           fi
