@@ -505,6 +505,9 @@ jobs:
           # Copy to final location as master
           sudo cp "$WORK_DIR/gigbox-work.img" "$FINAL_DIR/$MASTER_IMG"
           sudo chown runner:runner "$FINAL_DIR/$MASTER_IMG"
+
+          # The downloaded base and working copies are no longer needed.
+          sudo rm -f "${{ steps.download_base.outputs.BASE_IMG }}" "$WORK_DIR/gigbox-work.img"
           
           MASTER_SIZE=$(du -h "$FINAL_DIR/$MASTER_IMG" | cut -f1)
           echo "MASTER_SIZE=$MASTER_SIZE" >> $GITHUB_ENV
@@ -614,15 +617,24 @@ jobs:
             echo "PISHRINK_APPLIED=true" >> $GITHUB_ENV
           else
             echo "::warning::PiShrink unsafe (min safe: ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB }}GB > 13GB)"
-            echo "Using master image as final image (no shrink)"
-            cp "$MASTER_IMG" "$FINAL_IMG"
-            SHRUNK_SIZE=$(du -h "$FINAL_IMG" | cut -f1)
-            echo "SHRUNK_SIZE=$SHRUNK_SIZE" >> $GITHUB_ENV
-            echo "PISHRINK_APPLIED=false" >> $GITHUB_ENV
+           echo "Using master image as final image (no shrink)"
+           cp "$MASTER_IMG" "$FINAL_IMG"
+           SHRUNK_SIZE=$(du -h "$FINAL_IMG" | cut -f1)
+           echo "SHRUNK_SIZE=$SHRUNK_SIZE" >> $GITHUB_ENV
+           echo "PISHRINK_APPLIED=false" >> $GITHUB_ENV
           fi
 
       # ---------------------------------------------------------
-      # 18. POST-SHRINK VALIDATION
+      # 18. RECLAIM DISK SPACE BEFORE FINAL VALIDATION
+      # ---------------------------------------------------------
+      - name: Reclaim disk space
+        run: |
+          sudo rm -f "$FINAL_DIR/$MASTER_IMG"
+          echo "Removed the temporary master image"
+          df -h /
+
+      # ---------------------------------------------------------
+      # 19. POST-SHRINK VALIDATION
       # ---------------------------------------------------------
       - name: Post-shrink validation
         run: |
@@ -722,7 +734,7 @@ jobs:
           echo "Post-shrink validation PASSED"
 
       # ---------------------------------------------------------
-      # 19. COMPUTE SHA256 OF FINAL IMG BEFORE XZ COMPRESSION
+      # 20. COMPUTE SHA256 OF FINAL IMG BEFORE XZ COMPRESSION
       # ---------------------------------------------------------
       - name: Compute final IMG SHA256
         run: |
@@ -732,7 +744,7 @@ jobs:
           echo "Final IMG SHA256: $FINAL_IMG_HASH"
 
       # ---------------------------------------------------------
-      # 20. XZ COMPRESSION
+      # 21. XZ COMPRESSION
       # ---------------------------------------------------------
       - name: XZ compress final image
         run: |
@@ -747,21 +759,19 @@ jobs:
           echo "Compressed: $FINAL_XZ ($XZ_SIZE)"
 
       # ---------------------------------------------------------
-      # 21. VERIFY XZ INTEGRITY (decompress and compare hash)
+      # 22. VERIFY XZ INTEGRITY (decompress and compare hash)
       # ---------------------------------------------------------
       - name: Verify XZ integrity
         run: |
           FINAL_XZ="$FINAL_DIR/$FINAL_XZ"
           ORIG_HASH="${{ env.FINAL_IMG_HASH }}"
-          
+
           echo "Verifying XZ integrity..."
-          xz -d -c "$FINAL_XZ" > "$FINAL_DIR/verify.img"
-          
-          VERIFY_HASH=$(sha256sum "$FINAL_DIR/verify.img" | cut -d' ' -f1)
-          
+          set -o pipefail
+          VERIFY_HASH=$(xz -d -c "$FINAL_XZ" | sha256sum | cut -d' ' -f1)
+
           if [ "$ORIG_HASH" = "$VERIFY_HASH" ]; then
             echo "XZ verification: PASSED (byte-for-byte identical)"
-            rm "$FINAL_DIR/verify.img"
           else
             echo "::error::XZ verification FAILED - hashes don't match"
             echo "Original: $ORIG_HASH"
@@ -770,7 +780,7 @@ jobs:
           fi
 
       # ---------------------------------------------------------
-      # 22. GENERATE CHECKSUMS
+      # 23. GENERATE CHECKSUMS
       # ---------------------------------------------------------
       - name: Generate checksums
         run: |
@@ -783,7 +793,7 @@ jobs:
           cat checksums.txt
 
       # ---------------------------------------------------------
-      # 23. GENERATE FINAL_AUDIT_REPORT.md
+      # 24. GENERATE FINAL_AUDIT_REPORT.md
       # ---------------------------------------------------------
       - name: Generate FINAL_AUDIT_REPORT.md
         env:
@@ -987,7 +997,7 @@ jobs:
           python3 /tmp/gen_audit.py
 
       # ---------------------------------------------------------
-      # 24. GENERATE FINAL_RELEASE_REPORT.md
+      # 25. GENERATE FINAL_RELEASE_REPORT.md
       # ---------------------------------------------------------
       - name: Generate FINAL_RELEASE_REPORT.md
         env:
@@ -1167,7 +1177,7 @@ jobs:
           python3 /tmp/gen_release.py
 
       # ---------------------------------------------------------
-      # 25. COPY GPIO MAP & CREATE README
+      # 26. COPY GPIO MAP & CREATE README
       # ---------------------------------------------------------
       - name: Copy docs
         env:
@@ -1222,7 +1232,7 @@ jobs:
           python3 /tmp/gen_readme.py
 
       # ---------------------------------------------------------
-      # 26. CREATE FINAL ZIP PACKAGE
+      # 27. CREATE FINAL ZIP PACKAGE
       # ---------------------------------------------------------
       - name: Create final ZIP package
         run: |
@@ -1243,7 +1253,7 @@ jobs:
           echo "ZIP created: $ZIP_NAME ($ZIP_SIZE)"
 
       # ---------------------------------------------------------
-      # 27. MONITOR DISK SPACE
+      # 28. MONITOR DISK SPACE
       # ---------------------------------------------------------
       - name: Monitor disk space
         if: always()
@@ -1256,7 +1266,7 @@ jobs:
           du -sh "${{ env.FINAL_DIR }}" 2>/dev/null || true
 
       # ---------------------------------------------------------
-      # 28. UPLOAD ARTIFACTS
+      # 29. UPLOAD ARTIFACTS
       # ---------------------------------------------------------
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -1275,7 +1285,7 @@ jobs:
           retention-days: 30
 
       # ---------------------------------------------------------
-      # 29. SUMMARY
+      # 30. SUMMARY
       # ---------------------------------------------------------
       - name: Build Summary
         run: |
