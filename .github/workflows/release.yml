@@ -617,11 +617,11 @@ jobs:
             echo "PISHRINK_APPLIED=true" >> $GITHUB_ENV
           else
             echo "::warning::PiShrink unsafe (min safe: ${{ steps.pishrink_analysis.outputs.MIN_SAFE_GB }}GB > 13GB)"
-           echo "Using master image as final image (no shrink)"
-           cp "$MASTER_IMG" "$FINAL_IMG"
-           SHRUNK_SIZE=$(du -h "$FINAL_IMG" | cut -f1)
-           echo "SHRUNK_SIZE=$SHRUNK_SIZE" >> $GITHUB_ENV
-           echo "PISHRINK_APPLIED=false" >> $GITHUB_ENV
+             echo "Using master image as final image (no shrink)"
+             cp "$MASTER_IMG" "$FINAL_IMG"
+             SHRUNK_SIZE=$(du -h "$FINAL_IMG" | cut -f1)
+             echo "SHRUNK_SIZE=$SHRUNK_SIZE" >> $GITHUB_ENV
+             echo "PISHRINK_APPLIED=false" >> $GITHUB_ENV
           fi
 
       # ---------------------------------------------------------
