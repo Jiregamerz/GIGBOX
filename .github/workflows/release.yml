@@ -764,22 +764,22 @@ jobs:
       - name: Generate FINAL_AUDIT_REPORT.md
         run: |
           python3 << 'PYEOF'
-import os
-import subprocess
+            import os
+            import subprocess
 
-run_id = os.environ.get('GITHUB_RUN_ID', 'unknown')
-workflow = os.environ.get('GITHUB_WORKFLOW', 'unknown')
-sha = os.environ.get('GITHUB_SHA', 'unknown')[:8]
-master_size = os.environ.get('MASTER_SIZE', 'N/A')
-shrunk_size = os.environ.get('SHRUNK_SIZE', os.environ.get('MASTER_SIZE', 'N/A'))
-xz_size = os.environ.get('XZ_SIZE', 'N/A')
-min_safe_gb = os.environ.get('MIN_SAFE_GB', 'N/A')
-pishrink_applied = os.environ.get('PISHRINK_APPLIED', 'false')
-zip_size = os.environ.get('ZIP_SIZE', 'N/A')
-final_dir = os.environ.get('FINAL_DIR', '/home/runner/work/GIGBOX/GIGBOX/FINAL')
+            run_id = os.environ.get('GITHUB_RUN_ID', 'unknown')
+            workflow = os.environ.get('GITHUB_WORKFLOW', 'unknown')
+            sha = os.environ.get('GITHUB_SHA', 'unknown')[:8]
+            master_size = os.environ.get('MASTER_SIZE', 'N/A')
+            shrunk_size = os.environ.get('SHRUNK_SIZE', os.environ.get('MASTER_SIZE', 'N/A'))
+            xz_size = os.environ.get('XZ_SIZE', 'N/A')
+            min_safe_gb = os.environ.get('MIN_SAFE_GB', 'N/A')
+            pishrink_applied = os.environ.get('PISHRINK_APPLIED', 'false')
+            zip_size = os.environ.get('ZIP_SIZE', 'N/A')
+            final_dir = os.environ.get('FINAL_DIR', '/home/runner/work/GIGBOX/GIGBOX/FINAL')
 
-with open(os.path.join(final_dir, 'FINAL_AUDIT_REPORT.md'), 'w') as f:
-    f.write(f'''# GIGBOX OS - FINAL AUDIT REPORT
+            with open(os.path.join(final_dir, 'FINAL_AUDIT_REPORT.md'), 'w') as f:
+                f.write(f'''# GIGBOX OS - FINAL AUDIT REPORT
 
 **Date:** {subprocess.check_output(['date', '-u', '+%Y-%m-%d %H:%M:%S UTC'], text=True).strip()}
 **Build:** {run_id}
@@ -945,8 +945,8 @@ with open(os.path.join(final_dir, 'FINAL_AUDIT_REPORT.md'), 'w') as f:
 See `GIGBOX_GPIO_MAP.md` for complete GPIO table.
 See `GIGBOX_SOUNDFONT_MANIFEST.txt` for soundfont list.
 ''')
-print("FINAL_AUDIT_REPORT.md generated")
-PYEOF
+            print("FINAL_AUDIT_REPORT.md generated")
+          PYEOF
 
       # ---------------------------------------------------------
       # 24. GENERATE FINAL_RELEASE_REPORT.md
@@ -954,22 +954,22 @@ PYEOF
       - name: Generate FINAL_RELEASE_REPORT.md
         run: |
           python3 << 'PYEOF'
-import os
-import subprocess
+            import os
+            import subprocess
 
-run_id = os.environ.get('GITHUB_RUN_ID', 'unknown')
-workflow = os.environ.get('GITHUB_WORKFLOW', 'unknown')
-sha = os.environ.get('GITHUB_SHA', 'unknown')[:8]
-repo = os.environ.get('GITHUB_REPOSITORY', 'unknown')
-master_size = os.environ.get('MASTER_SIZE', 'N/A')
-shrunk_size = os.environ.get('SHRUNK_SIZE', os.environ.get('MASTER_SIZE', 'N/A'))
-xz_size = os.environ.get('XZ_SIZE', 'N/A')
-pishrink_applied = os.environ.get('PISHRINK_APPLIED', 'false')
-min_safe_gb = os.environ.get('MIN_SAFE_GB', 'N/A')
-final_dir = os.environ.get('FINAL_DIR', '/home/runner/work/GIGBOX/GIGBOX/FINAL')
+            run_id = os.environ.get('GITHUB_RUN_ID', 'unknown')
+            workflow = os.environ.get('GITHUB_WORKFLOW', 'unknown')
+            sha = os.environ.get('GITHUB_SHA', 'unknown')[:8]
+            repo = os.environ.get('GITHUB_REPOSITORY', 'unknown')
+            master_size = os.environ.get('MASTER_SIZE', 'N/A')
+            shrunk_size = os.environ.get('SHRUNK_SIZE', os.environ.get('MASTER_SIZE', 'N/A'))
+            xz_size = os.environ.get('XZ_SIZE', 'N/A')
+            pishrink_applied = os.environ.get('PISHRINK_APPLIED', 'false')
+            min_safe_gb = os.environ.get('MIN_SAFE_GB', 'N/A')
+            final_dir = os.environ.get('FINAL_DIR', '/home/runner/work/GIGBOX/GIGBOX/FINAL')
 
-with open(os.path.join(final_dir, 'FINAL_RELEASE_REPORT.md'), 'w') as f:
-    f.write(f'''# GIGBOX OS - FINAL RELEASE REPORT
+            with open(os.path.join(final_dir, 'FINAL_RELEASE_REPORT.md'), 'w') as f:
+                f.write(f'''# GIGBOX OS - FINAL RELEASE REPORT
 
 **Release Date:** {subprocess.check_output(['date', '-u', '+%Y-%m-%d'], text=True).strip()}
 **Build ID:** {run_id}
@@ -1113,8 +1113,8 @@ See `GIGBOX_GPIO_MAP.md` for complete table.
 
 For issues, see: https://github.com/{repo}/issues
 ''')
-print("FINAL_RELEASE_REPORT.md generated")
-PYEOF
+            print("FINAL_RELEASE_REPORT.md generated")
+          PYEOF
 
       # ---------------------------------------------------------
       # 25. COPY GPIO MAP & CREATE README
@@ -1126,10 +1126,10 @@ PYEOF
           
           # Create README
           cp "$INTEGRATION_DIR/README.md" "$FINAL_DIR/" 2>/dev/null || python3 << 'PYEOF'
-import os
-final_dir = os.environ.get('FINAL_DIR', '/home/runner/work/GIGBOX/GIGBOX/FINAL')
-with open(os.path.join(final_dir, 'README.md'), 'w') as f:
-    f.write('''# GIGBOX OS - FINAL RELEASE
+            import os
+            final_dir = os.environ.get('FINAL_DIR', '/home/runner/work/GIGBOX/GIGBOX/FINAL')
+            with open(os.path.join(final_dir, 'README.md'), 'w') as f:
+                f.write('''# GIGBOX OS - FINAL RELEASE
 
 ## Overview
 GIGBOX is a modified Zynthian OS with custom hardware integration, theming, and features for the SPOOKI INSTRUMENTS GIGBOX hardware platform.
@@ -1165,8 +1165,8 @@ See GIGBOX_GPIO_MAP.md for complete wiring diagram.
 Based on Zynthian OS (https://zynthian.org)
 Theme & Integration: SPOOKI INSTRUMENTS
 ''')
-print("README.md generated")
-PYEOF
+            print("README.md generated")
+          PYEOF
 
       # ---------------------------------------------------------
       # 26. CREATE FINAL ZIP PACKAGE
