@@ -74,7 +74,9 @@ jobs:
             kpartx \
             gdisk \
             bc \
-            jq
+            jq \
+            imagemagick \
+            socat
 
       # ---------------------------------------------------------
       # 2A. VERIFY SOUNDFONT ASSETS
@@ -734,7 +736,74 @@ jobs:
           echo "Post-shrink validation PASSED"
 
       # ---------------------------------------------------------
-      # 20. COMPUTE SHA256 OF FINAL IMG BEFORE XZ COMPRESSION
+      # 20. CAPTURE HEADLESS UI SCREENSHOTS (BEST EFFORT)
+      # ---------------------------------------------------------
+      - name: Capture headless UI screenshots
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          FINAL_IMG="$FINAL_DIR/$FINAL_IMG"
+          SCREENSHOT_DIR="$FINAL_DIR/screenshots"
+          MONITOR_SOCKET="/tmp/gigbox-qemu-monitor.sock"
+          QEMU_PIDFILE="/tmp/gigbox-qemu.pid"
+          mkdir -p "$SCREENSHOT_DIR"
+
+          cleanup_qemu() {
+            if [ -f "$QEMU_PIDFILE" ]; then
+              kill "$(cat "$QEMU_PIDFILE")" 2>/dev/null || true
+            fi
+            rm -f "$MONITOR_SOCKET" "$QEMU_PIDFILE"
+          }
+          trap cleanup_qemu EXIT
+
+          # QEMU supports a Pi 4 board, so this is a best-effort smoke test
+          # for the Pi 5 image rather than a hardware-equivalent boot.
+          qemu-system-aarch64 \
+            -M raspi4b \
+            -m 2G \
+            -drive "file=$FINAL_IMG,if=sd,format=raw,readonly=on" \
+            -display vnc=:0 \
+            -monitor "unix:$MONITOR_SOCKET,server=on,wait=off" \
+            -serial file:/tmp/gigbox-qemu-serial.log \
+            -no-reboot \
+            -daemonize \
+            -pidfile "$QEMU_PIDFILE" || true
+
+          send_monitor() {
+            printf '%s\n' "$1" | socat - "UNIX-CONNECT:$MONITOR_SOCKET" >/dev/null 2>&1 || true
+          }
+
+          for screen in 1 2 3; do
+            sleep 30
+            send_monitor "screendump $SCREENSHOT_DIR/screen-$screen.ppm"
+            # Move through a few menu states when the guest accepts input.
+            send_monitor "sendkey down"
+            send_monitor "sendkey ret"
+          done
+
+          for ppm in "$SCREENSHOT_DIR"/*.ppm; do
+            [ -f "$ppm" ] || continue
+            convert "$ppm" "${ppm%.ppm}.png" 2>/dev/null || true
+            rm -f "$ppm"
+          done
+
+          # Always provide a viewable PNG if the Pi 5 image cannot boot in QEMU.
+          if ! compgen -G "$SCREENSHOT_DIR/*.png" >/dev/null; then
+            cp "$INTEGRATION_DIR/assets/img/gigbox_boot.png" "$SCREENSHOT_DIR/boot-branding-reference.png" 2>/dev/null || true
+            printf '%s\n' 'QEMU could not produce a live screen capture; this is the boot branding reference.' > "$SCREENSHOT_DIR/README.txt"
+          fi
+
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GIGBOX-UI-Screenshots-${{ github.run_id }}
+          path: ${{ env.FINAL_DIR }}/screenshots
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ---------------------------------------------------------
+      # 21. COMPUTE SHA256 OF FINAL IMG BEFORE XZ COMPRESSION
       # ---------------------------------------------------------
       - name: Compute final IMG SHA256
         run: |
@@ -744,7 +813,7 @@ jobs:
           echo "Final IMG SHA256: $FINAL_IMG_HASH"
 
       # ---------------------------------------------------------
-      # 21. XZ COMPRESSION
+      # 22. XZ COMPRESSION
       # ---------------------------------------------------------
       - name: XZ compress final image
         run: |
@@ -759,7 +828,7 @@ jobs:
           echo "Compressed: $FINAL_XZ ($XZ_SIZE)"
 
       # ---------------------------------------------------------
-      # 22. VERIFY XZ INTEGRITY (decompress and compare hash)
+      # 23. VERIFY XZ INTEGRITY (decompress and compare hash)
       # ---------------------------------------------------------
       - name: Verify XZ integrity
         run: |
@@ -780,7 +849,7 @@ jobs:
           fi
 
       # ---------------------------------------------------------
-      # 23. GENERATE CHECKSUMS
+      # 24. GENERATE CHECKSUMS
       # ---------------------------------------------------------
       - name: Generate checksums
         run: |
@@ -793,7 +862,7 @@ jobs:
           cat checksums.txt
 
       # ---------------------------------------------------------
-      # 24. GENERATE FINAL_AUDIT_REPORT.md
+      # 25. GENERATE FINAL_AUDIT_REPORT.md
       # ---------------------------------------------------------
       - name: Generate FINAL_AUDIT_REPORT.md
         env:
@@ -997,7 +1066,7 @@ jobs:
           python3 /tmp/gen_audit.py
 
       # ---------------------------------------------------------
-      # 25. GENERATE FINAL_RELEASE_REPORT.md
+      # 26. GENERATE FINAL_RELEASE_REPORT.md
       # ---------------------------------------------------------
       - name: Generate FINAL_RELEASE_REPORT.md
         env:
@@ -1177,7 +1246,7 @@ jobs:
           python3 /tmp/gen_release.py
 
       # ---------------------------------------------------------
-      # 26. COPY GPIO MAP & CREATE README
+      # 27. COPY GPIO MAP & CREATE README
       # ---------------------------------------------------------
       - name: Copy docs
         env:
@@ -1232,7 +1301,7 @@ jobs:
           python3 /tmp/gen_readme.py
 
       # ---------------------------------------------------------
-      # 27. CREATE FINAL ZIP PACKAGE
+      # 28. CREATE FINAL ZIP PACKAGE
       # ---------------------------------------------------------
       - name: Create final ZIP package
         run: |
@@ -1253,7 +1322,7 @@ jobs:
           echo "ZIP created: $ZIP_NAME ($ZIP_SIZE)"
 
       # ---------------------------------------------------------
-      # 28. MONITOR DISK SPACE
+      # 29. MONITOR DISK SPACE
       # ---------------------------------------------------------
       - name: Monitor disk space
         if: always()
@@ -1266,7 +1335,7 @@ jobs:
           du -sh "${{ env.FINAL_DIR }}" 2>/dev/null || true
 
       # ---------------------------------------------------------
-      # 29. UPLOAD ARTIFACTS
+      # 30. UPLOAD ARTIFACTS
       # ---------------------------------------------------------
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -1285,7 +1354,7 @@ jobs:
           retention-days: 30
 
       # ---------------------------------------------------------
-      # 30. SUMMARY
+      # 31. SUMMARY
       # ---------------------------------------------------------
       - name: Build Summary
         run: |
