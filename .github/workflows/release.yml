@@ -1298,7 +1298,9 @@ jobs:
           ''')
           print("README.md generated")
           EOF
-          python3 /tmp/gen_readme.py
+          if [ ! -f "$INTEGRATION_DIR/README.md" ]; then
+            python3 /tmp/gen_readme.py
+          fi
 
       # ---------------------------------------------------------
       # 28. CREATE FINAL ZIP PACKAGE
