@@ -70,9 +70,29 @@ cp "$INTEGRATION_DIR/assets/img/brand.png" "$ICONS_DIR/brand.png" 2>/dev/null ||
 echo -e "${GREEN}Boot/branding assets installed${NC}"
 
 echo -e "${YELLOW}[5/12] Installing soundfonts...${NC}"
+SF2_SOURCE_DIR="$INTEGRATION_DIR/assets/soundfonts"
+if [ ! -d "$SF2_SOURCE_DIR" ]; then
+    echo -e "${RED}SoundFont source directory not found: $SF2_SOURCE_DIR${NC}"
+    exit 1
+fi
+
+SF2_FILES=("$SF2_SOURCE_DIR"/*.sf2)
+if [ ! -f "${SF2_FILES[0]}" ]; then
+    echo -e "${RED}No .sf2 files found in $SF2_SOURCE_DIR${NC}"
+    exit 1
+fi
+
 mkdir -p "$SOUNDFONTS_DIR/GIGBOX"
-cp "$INTEGRATION_DIR/assets/soundfonts"/*.sf2 "$SOUNDFONTS_DIR/GIGBOX/" 2>/dev/null || true
-sf2_count=$(ls "$SOUNDFONTS_DIR/GIGBOX"/*.sf2 2>/dev/null | wc -l)
+rm -f "$SOUNDFONTS_DIR/GIGBOX"/*.sf2
+for sf2 in "${SF2_FILES[@]}"; do
+    cp -- "$sf2" "$SOUNDFONTS_DIR/GIGBOX/"
+done
+
+sf2_count=$(find "$SOUNDFONTS_DIR/GIGBOX" -maxdepth 1 -type f -name '*.sf2' | wc -l)
+if [ "$sf2_count" -ne "${#SF2_FILES[@]}" ]; then
+    echo -e "${RED}SoundFont count mismatch: source=${#SF2_FILES[@]} image=$sf2_count${NC}"
+    exit 1
+fi
 echo -e "${GREEN}$sf2_count soundfonts installed to $SOUNDFONTS_DIR/GIGBOX/${NC}"
 
 echo -e "${YELLOW}[6/12] Installing hardware configuration (GPIO, encoder, buttons)...${NC}"

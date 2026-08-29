@@ -4,7 +4,8 @@
 # Installs SF2 soundfonts into Zynthian soundfont library
 # Run as root on target device or in chroot
 
-set -e
+set -euo pipefail
+shopt -s nullglob
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -45,7 +46,7 @@ fi
 SF2_FILES=("$SOURCE_DIR"/*.sf2)
 SF2_COUNT=${#SF2_FILES[@]}
 
-if [ $SF2_COUNT -eq 0 ] || [ ! -f "${SF2_FILES[0]}" ]; then
+if [ "$SF2_COUNT" -eq 0 ]; then
     echo -e "${RED}No .sf2 files found in $SOURCE_DIR${NC}"
     exit 1
 fi
@@ -116,9 +117,9 @@ if command -v fluidsynth >/dev/null 2>&1; then
     # FluidSynth doesn't have a cache, but we can verify files are readable
     for sf2 in "$TARGET_DIR"/*.sf2; do
         if fluidsynth --dump-midi "$sf2" >/dev/null 2>&1; then
-            log "Verified: $(basename "$sf2")"
+            echo "Verified: $(basename "$sf2")"
         else
-            log "Warning: Could not verify $(basename "$sf2")"
+            echo "Warning: Could not verify $(basename "$sf2")"
         fi
     done
 fi
