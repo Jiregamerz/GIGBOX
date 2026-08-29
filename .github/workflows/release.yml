@@ -746,40 +746,84 @@ jobs:
           SCREENSHOT_DIR="$FINAL_DIR/screenshots"
           MONITOR_SOCKET="/tmp/gigbox-qemu-monitor.sock"
           QEMU_PIDFILE="/tmp/gigbox-qemu.pid"
+          QEMU_BOOT_DIR="/tmp/gigbox-qemu-boot"
+          QEMU_KERNEL="/tmp/gigbox-qemu-kernel8.img"
+          SCREEN_LOOP=""
           mkdir -p "$SCREENSHOT_DIR"
+          mkdir -p "$QEMU_BOOT_DIR"
 
           cleanup_qemu() {
             if [ -f "$QEMU_PIDFILE" ]; then
               kill "$(cat "$QEMU_PIDFILE")" 2>/dev/null || true
             fi
-            rm -f "$MONITOR_SOCKET" "$QEMU_PIDFILE"
+            sudo umount "$QEMU_BOOT_DIR" 2>/dev/null || true
+            if [ -n "$SCREEN_LOOP" ]; then
+              sudo losetup -d "$SCREEN_LOOP" 2>/dev/null || true
+            fi
+            rm -f "$MONITOR_SOCKET" "$QEMU_PIDFILE" "$QEMU_KERNEL"
           }
           trap cleanup_qemu EXIT
 
-          # QEMU supports a Pi 4 board, so this is a best-effort smoke test
-          # for the Pi 5 image rather than a hardware-equivalent boot.
-          qemu-system-aarch64 \
-            -M raspi4b \
-            -m 2G \
-            -drive "file=$FINAL_IMG,if=sd,format=raw,readonly=on" \
-            -display vnc=:0 \
-            -monitor "unix:$MONITOR_SOCKET,server=on,wait=off" \
-            -serial file:/tmp/gigbox-qemu-serial.log \
-            -no-reboot \
-            -daemonize \
-            -pidfile "$QEMU_PIDFILE" || true
+          # QEMU has no Pi 5 board, so boot the image's generic ARM64 kernel
+          # on the compatible Pi 3B+ model for a software/UI smoke test.
+          SCREEN_LOOP=$(sudo losetup --find --show --partscan "$FINAL_IMG" 2>/dev/null || true)
+          if [ -n "$SCREEN_LOOP" ]; then
+            sudo partprobe "$SCREEN_LOOP" 2>/dev/null || true
+            BOOT_LOOP="${SCREEN_LOOP}p1"
+            for attempt in $(seq 1 10); do
+              [ -b "$BOOT_LOOP" ] && break
+              sleep 1
+            done
+
+            if [ -b "$BOOT_LOOP" ] && sudo mount -o ro "$BOOT_LOOP" "$QEMU_BOOT_DIR"; then
+              if [ -f "$QEMU_BOOT_DIR/kernel8.img" ]; then
+                sudo cp "$QEMU_BOOT_DIR/kernel8.img" "$QEMU_KERNEL"
+                sudo chown runner:runner "$QEMU_KERNEL"
+                QEMU_READY=true
+              fi
+              CMDLINE=$(tr -d '\r\n' < "$QEMU_BOOT_DIR/cmdline.txt" 2>/dev/null || true)
+              sudo umount "$QEMU_BOOT_DIR" 2>/dev/null || true
+            fi
+            sudo losetup -d "$SCREEN_LOOP" 2>/dev/null || true
+            SCREEN_LOOP=""
+          fi
+
+          QEMU_STARTED=false
+          if [ "${QEMU_READY:-false}" = true ]; then
+            CMDLINE="${CMDLINE:-root=/dev/mmcblk0p2 rootwait} rootwait ro"
+            qemu-system-aarch64 \
+              -M raspi3b \
+              -m 1G \
+              -kernel "$QEMU_KERNEL" \
+              -append "$CMDLINE" \
+              -drive "file=$FINAL_IMG,if=sd,format=raw,readonly=on" \
+              -display vnc=:0 \
+              -monitor "unix:$MONITOR_SOCKET,server=on,wait=off" \
+              -serial file:/tmp/gigbox-qemu-serial.log \
+              -no-reboot \
+              -daemonize \
+              -pidfile "$QEMU_PIDFILE" && QEMU_STARTED=true || true
+          fi
 
           send_monitor() {
             printf '%s\n' "$1" | socat - "UNIX-CONNECT:$MONITOR_SOCKET" >/dev/null 2>&1 || true
           }
 
-          for screen in 1 2 3; do
+          if [ "$QEMU_STARTED" = true ]; then
+            sleep 20
+            send_monitor "screendump $SCREENSHOT_DIR/01-qemu-boot.ppm"
             sleep 30
-            send_monitor "screendump $SCREENSHOT_DIR/screen-$screen.ppm"
+            send_monitor "screendump $SCREENSHOT_DIR/02-qemu-main.ppm"
             # Move through a few menu states when the guest accepts input.
             send_monitor "sendkey down"
             send_monitor "sendkey ret"
-          done
+            sleep 20
+            send_monitor "screendump $SCREENSHOT_DIR/03-qemu-navigation.ppm"
+            send_monitor "sendkey right"
+            send_monitor "sendkey ret"
+            sleep 20
+            send_monitor "screendump $SCREENSHOT_DIR/04-qemu-next-screen.ppm"
+          fi
 
           for ppm in "$SCREENSHOT_DIR"/*.ppm; do
             [ -f "$ppm" ] || continue
@@ -792,6 +836,7 @@ jobs:
             cp "$INTEGRATION_DIR/assets/img/gigbox_boot.png" "$SCREENSHOT_DIR/boot-branding-reference.png" 2>/dev/null || true
             printf '%s\n' 'QEMU could not produce a live screen capture; this is the boot branding reference.' > "$SCREENSHOT_DIR/README.txt"
           fi
+          cp /tmp/gigbox-qemu-serial.log "$SCREENSHOT_DIR/qemu-serial.log" 2>/dev/null || true
 
       - name: Upload UI screenshots
         if: always()
@@ -1249,11 +1294,12 @@ jobs:
       # 27. COPY GPIO MAP & CREATE README
       # ---------------------------------------------------------
       - name: Copy docs
+        continue-on-error: true
         env:
           FINAL_DIR: ${{ env.FINAL_DIR }}
         run: |
           # Copy GPIO map
-          cp "$INTEGRATION_DIR/GIGBOX_GPIO_MAP.md" "$FINAL_DIR/"
+          cp "$INTEGRATION_DIR/GIGBOX_GPIO_MAP.md" "$FINAL_DIR/" 2>/dev/null || echo "::warning::GPIO map unavailable; continuing without it"
           
           # Create README
           cp "$INTEGRATION_DIR/README.md" "$FINAL_DIR/" 2>/dev/null || cat > /tmp/gen_readme.py << 'EOF'
@@ -1298,8 +1344,8 @@ jobs:
           ''')
           print("README.md generated")
           EOF
-          if [ ! -f "$INTEGRATION_DIR/README.md" ]; then
-            python3 /tmp/gen_readme.py
+          if [ ! -f "$FINAL_DIR/README.md" ]; then
+            python3 /tmp/gen_readme.py || echo "::warning::README generation failed; continuing without it"
           fi
 
       # ---------------------------------------------------------
@@ -1309,15 +1355,21 @@ jobs:
         run: |
           cd "$FINAL_DIR"
           
-          # Create ZIP with release materials (NOT the master image)
-          zip -r "$ZIP_NAME" \
-            "$FINAL_XZ" \
-            checksums.txt \
+          # Create ZIP with available release materials (NOT the master image).
+          ZIP_FILES=("$FINAL_XZ" checksums.txt)
+          for document in \
             FINAL_AUDIT_REPORT.md \
             FINAL_RELEASE_REPORT.md \
             GIGBOX_GPIO_MAP.md \
             GIGBOX_SOUNDFONT_MANIFEST.txt \
-            README.md
+            README.md; do
+            if [ -f "$document" ]; then
+              ZIP_FILES+=("$document")
+            else
+              echo "::warning::Skipping missing documentation: $document"
+            fi
+          done
+          zip -r "$ZIP_NAME" "${ZIP_FILES[@]}"
           
           ZIP_SIZE=$(du -h "$ZIP_NAME" | cut -f1)
           echo "ZIP_SIZE=$ZIP_SIZE" >> $GITHUB_ENV
