@@ -456,12 +456,12 @@ jobs:
           SF2_DIR="$WORK_DIR/root/zynthian/zynthian-data/soundfonts/GIGBOX"
           if [ -d "$SF2_DIR" ]; then
             cat > "$FINAL_DIR/GIGBOX_SOUNDFONT_MANIFEST.txt" << 'SFMANEOF'
-GIGBOX SoundFont Manifest
-=========================
-Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-Build: ${{ github.run_id }}
+            GIGBOX SoundFont Manifest
+            =========================
+            Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            Build: ${{ github.run_id }}
 
-SFMANEOF
+            SFMANEOF
             ls -la "$SF2_DIR"/*.sf2 2>/dev/null | awk '{print $5 " bytes  " $9}' >> "$FINAL_DIR/GIGBOX_SOUNDFONT_MANIFEST.txt"
             echo "" >> "$FINAL_DIR/GIGBOX_SOUNDFONT_MANIFEST.txt"
             echo "Total: $(ls "$SF2_DIR"/*.sf2 2>/dev/null | wc -l) files" >> "$FINAL_DIR/GIGBOX_SOUNDFONT_MANIFEST.txt"
